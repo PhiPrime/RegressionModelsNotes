@@ -45,10 +45,147 @@ In addition, Johns Hopkins has **[a site on Statistical Methods and Applications
 # Least Squares and Linear Regression  
 ## Regression  
 ### Introduction to Regression  
+* The simplicity and intrepretability offered by regression models should make them a first tool of choice for any practical problem.  
+* First discovered by **[Francis Galton](https://en.wikipedia.org/wiki/Francis_Galton)** who coined most of the terminology we use today.  
+
+#### Relevant Simply Statistics Post  
+**[Simply Statistics is a blog by Jeff Leek, Roger Peng and Rafael Irizarry, who wrote this post](https://simplystatistics.org/2013/01/28/data-supports-claim-that-if-kobe-stops-ball-hogging-the-lakers-will-win-more/)**  
+![Percent of shots by Kobe to Point Differential](./Images/kobelakers_lm_plot.png)  
+  
+* "Data supports claim that if Kobe stops ball hogging the Lakers will win more"  
+* "Linear regression suggests that an increase of 1% in percent of shots taken by Kobe results in a drop of 1.16 (+/- 0.22) in score differential."  
+        + Standard error given as "+/- 0.22"  
+
+#### Questions for this Class  
+In reference to Galton's parent/children height data, which can be accessed from the `galton` dataset in the `UsingR` package.  
+Consider trying to answer the following kinds of questions:  
+* To use the parents' heights to predict childrens' heights.  
+* To try to find a parsimonious (explain the data), easily described mean relationship between parent and children's heights.  
+* To investigate the variation in childrens' heights that appears unrelated to parents' heights (residual variation).  
+* To quantify what impact genotype information has beyond parental height in explaining child height.  
+* To figure out how/whether and what assumptions are needed to generalize findings beyond the data in question.  
+* Why do children of very tall parents tend to be tall, but a little shorter than their parents and why children of very short parents tend to be short, but a little taller than their parents? (This is a famous question called "Regression to the mean".)  
+
 ### Introduction to Basic Least Squares  
+* Let's look at the data first used by Francis Galton in 1885.  
+* Galton was a statistician who invented the term and concepts of regression and correlation, founded the journal Biometrika, and was the cousin of Charles Darwin.  
+* Let's look at the marginal (parents disregarding children and children disregarding parents) distributions first.  
+        + Parent distribution is all heterosecual couples.  
+        + Correction for gender via multiplying female heights by 1.08.  
+        + Overplotting is an issue from discretization.  
+```{r message=FALSE}
+library(UsingR); data(galton); library(reshape2); library(tidyverse)
+```
+```{r}
+long <- melt(galton)
+plot <- ggplot(long, aes(x = value, fill = variable)) +
+        geom_histogram(colour = "#000000", binwidth = 1)
+plot + facet_grid(.~variable)
+```
+  
+#### Finding the Middle via Least Squares  
+* Consider only the children's heights  
+        + How could one describe the "middle"?  
+        + One definition, let $Y_i$ be the height of child $i$ for $i = 1,...,n=928$, then define the middle as the value of $\mu$ that minimizes  
+$\sum_{i=1}^n (Y_i - \mu)^2$  
+* This is the physical center of mass of the histogram.  
+* The result of this is that $\mu = \bar{Y}$  
+```{r}
+ggplot(galton, aes(x = child)) +
+        geom_histogram(fill = "salmon", colour = "#000000", binwidth = 1) +
+        geom_vline(xintercept = mean(galton$child), size = 3)
+```
+  
+* The above plot of child heights has a mean of `r mean(galton$child)`
+
+
 ### Technical Details  
+Proof that $\bar{Y}$ is the minimizer for $\sum_{i=1}^n (Y_i - \mu)^2$  
+$\sum_{i=1}^n (Y_i - \mu)^2 = \sum_{i=1}^n (Y_i - \bar{Y} + \bar{Y} - \mu)^2\\ =\sum_{i=1}^n(Y_i-\bar{Y}^2 + 2\sum_{i=1}^n(Y_i-\bar{Y})(\bar{Y}-\mu) +\sum_{i=1}^n(\bar{Y} -\mu)^2\\ =\sum_{i=1}^n(Y_i-\bar{Y})^2+2(\bar{Y}-\mu)\sum_{i=1}^n(Y_i-\bar{Y})+\sum_{i=1}^n(\bar{Y}-\mu)^2\\ =\sum_{i=1}^n(Y_i-\bar{Y})^2+2(\bar{Y}-\mu)(\sum_{i=1}^nY_i-n\bar{Y})+\sum_{i=1}^n(\bar{Y}-\mu)^2\\ =\sum_{i=1}^n(Y_i-\bar{Y})^2+0+\sum_{i=1}^n(\bar{Y}-\mu)^2\\ \geq \sum_{i=1}^n(Y_i-\bar{Y})^2$  
+  
+Therefore, $\sum_{i=1}^n (Y_i - \mu)^2$ is minimized when $\bar{Y}=\mu$  
+
 ### Introductory Data Example  
+#### Comparing Childrens' Heights and Their Parents' Heights  
+```{r}
+ggplot(galton, aes(x = parent, y = child)) + geom_point()
+```
+  
+* These points are overplotted, there are multiple overlays at each point, so let's make a better plot  
+```{r}
+freqData <- as.data.frame(table(galton$child, galton$parent))
+names(freqData) <- c("child", "parent", "freq")
+freqData$child <- as.numeric(as.character(freqData$child))
+freqData$parent <- as.numeric(as.character(freqData$parent))
+plot <- ggplot(filter(freqData, freq > 0), aes(x = parent, y = child)) +
+        scale_size(range = c(2, 20), guide = "none") +
+        geom_point(colour = "grey50", 
+                   aes(size = freq + 20, show_guide = FALSE)) +
+        geom_point(aes(colour = freq, size = freq)) +
+        scale_colour_gradient(low = "lightblue", high = "#FFFFFF")
+plot
+```
+  
+#### Regression Through the Origin  
+* Suppose that $X_i$ are the parents' heights  
+* Consider picking the slope $\beta$ that minimizes  
+$\sum_{i=1}^n(Y_i-X_i\beta)^2$  
+* This is exactly using the orgin as a pivot point picking the line that minimizes the sum of squared vertical distances of the points to the line  
+* Subtract the means so that the orgin is the mean of the parent and children's heights  
+        + A plot with a regression line going through true (0,0) often doesn't make sense, so subtracting the means realigns the orgin to be in the middle of the data  
+```{r}
+freqData <- as.data.frame(table(galton$parent - mean(galton$parent),
+                                galton$child - mean(galton$child)))
+names(freqData) <- c("child", "parent", "freq") 
+freqData$child <- as.numeric(as.character(freqData$child))
+freqData$parent <- as.numeric(as.character(freqData$parent))
+plot <- ggplot(filter(freqData, freq > 0), aes(x = parent, y = child)) +
+        scale_size(range = c(2, 20), guide = "none") +
+        geom_point(colour = "grey50", 
+                   aes(size = freq + 20)) + 
+        geom_point(aes(colour = freq, size = freq)) +
+        scale_colour_gradient(low = "lightblue", high = "#FFFFFF") +
+        geom_abline(intercept = 0, 
+                    
+                slope = lm(
+                        I(child - mean(child)) ~ 
+                                I(parent - mean(parent)) - 1, 
+                        data = galton)$coeff,
+                
+                    size = 3)
+plot
+```
+  
+* In the next few lectures we'll talk about why this is the solution  
+```{r}
+lm(I(child - mean(child)) ~ I(parent - mean(parent)) - 1, data = galton)
+```
+  
+* The `I` function just ignores the intercept, since we already adjusted for that  
+* We can also fit a line to an un-adjusted model  
+```{r}
+freqData <- as.data.frame(table(galton$child, galton$parent))
+names(freqData) <- c("child", "parent", "freq")
+freqData$child <- as.numeric(as.character(freqData$child))
+freqData$parent <- as.numeric(as.character(freqData$parent))
+plot <- ggplot(filter(freqData, freq > 0), aes(x = parent, y = child)) +
+        scale_size(range = c(2, 20), guide = "none" ) +
+        geom_point(colour = "grey50", aes(size = freq + 20)) +
+        geom_point(aes(colour = freq, size = freq)) +
+        scale_colour_gradient(low = "lightblue", high = "#FFFFFF")                    
+lm1 <- lm(galton$child ~ galton$parent)
+plot + geom_abline(intercept = coef(lm1)[1], slope = coef(lm1)[2], 
+                   size = 3, colour = "#888888")
+```
+  
+  
 ### Lesson with `swirl()`: Introduction  
+* Another way we could have gotten past overlapping plot points is to use the `jitter` function  
+```{r}
+plot(jitter(child,4) ~ parent, galton)
+```
+
+
 **Reminder to commit (02) delete this line** ***AFTER*** **committing**  
 
 ## Linear Least Squares  
