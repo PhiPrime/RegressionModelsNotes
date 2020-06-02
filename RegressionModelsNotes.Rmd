@@ -14,17 +14,31 @@ knitr::opts_chunk$set(echo = TRUE)
 ```
 
 # Intro  
-## GitHub Link for Lectures  
+This course covers regression analysis, least squares and inference using regression models. Special cases of the regression model, ANOVA and ANCOVA will be covered as well. Analysis of residuals and variability will be investigated. The course will cover modern thinking on model selection and novel uses of regression models including scatterplot smoothing.  
 
+## GitHub Link for Lectures  
+**[Link to the GitHub for this course](https://github.com/bcaffo/courses/tree/master/07_RegressionModels)**  
 
 ## Course Book 
+**[Regression Models for Data Science in R, through Leanpub](https://leanpub.com/regmods)**  
 
+Further Reading: **[Advanced Linear Models for Data Science](https://leanpub.com/lm)**  
 
 ## Instructor's Note  
-
+"*We believe that the key word in Data Science is 'science'. Our course track is focused on providing you with three things:*  
+1) *An introduction to the key ideas behind working with data in a scientific way that will produce new and reproducible insight*  
+2) *An introduction to the tools that will allow you to execute on a data analytic strategy, from raw data in a database to a completed report with interactive graphics*  
+3) *Giving you plenty of hands on practice so you can learn the techniques for yourself.*  
+  
+*Regression Models represents a both fundamental and foundational component of the series, and it presents the single most practical data analysis toolset. Using only a bare minimum of mathematics, we will attempt to provide you with the fundamentals for the application and practice of regression.*  
+*We are excited about the opportunity to attempt to scale Data Science education. We intend for the courses to be self-contained, fast-paced, and interactive, and we intend to run them frequently to give people with busy schedules the opportunity to work on material at their own pace.*  
+  
+*Brian Caffo and the Data Science Track Team*"  
 
 ## Data Science Specialization Community Site  
 **[The site is created using GitHub Pages](http://datasciencespecialization.github.io/)**  
+  
+In addition, Johns Hopkins has **[a site on Statistical Methods and Applications for Research in Technology](http://www.smart-stats.org/)** that Dr. Caffo helps manage.  
 
 **Reminder to commit (01) delete this line** ***AFTER*** **committing**  
 
