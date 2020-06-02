@@ -1,0 +1,164 @@
+---
+title: "RegressionModelsNotes"
+author: "Coursera Course by John Hopkins University"
+date: "INSTRUCTORS: Dr. Brian Caffo, Dr. Roger D. Peng, Dr. Jeff Leek"
+fontsize: 11pt
+output: 
+        pdf_document:
+                toc: true
+                toc_depth: 4
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Intro  
+## GitHub Link for Lectures  
+
+
+## Course Book 
+
+
+## Instructor's Note  
+
+
+## Data Science Specialization Community Site  
+**[The site is created using GitHub Pages](http://datasciencespecialization.github.io/)**  
+
+**Reminder to commit (01) delete this line** ***AFTER*** **committing**  
+
+# Least Squares and Linear Regression  
+## Regression  
+### Introduction to Regression  
+### Introduction to Basic Least Squares  
+### Technical Details  
+### Introductory Data Example  
+### Lesson with `swirl()`: Introduction  
+**Reminder to commit (02) delete this line** ***AFTER*** **committing**  
+
+## Linear Least Squares  
+### Notation and Background  
+### Linear Least Squares  
+### Linear Least Squares Coding Example  
+### Technical Details  
+### Lesson with `swirl()`: Least Squares Estimation  
+**Reminder to commit (03) delete this line** ***AFTER*** **committing**  
+
+## Regression to the Mean  
+### Regression to the Mean  
+### Lesson with `swirl()`: Residuals  
+**Reminder to commit (04) delete this line** ***AFTER*** **committing**  
+
+## Quiz 1  
+**Reminder to commit (S1) delete this line** ***AFTER*** **committing**  
+
+# Linear Regression & Multivariable Regression  
+## Statistical Linear Regression Models  
+### Statistical Linear Regression Models  
+### Interpreting Coefficients  
+### Linear Regression for Prediction  
+### Lesson with `swirl()`: Introduction to Multivariable Regression  
+**Reminder to commit (05) delete this line** ***AFTER*** **committing**  
+
+## Residuals  
+### Residuals  
+### Residuals, Coding Example  
+### Residual Variance  
+### Lesson with `swirl()`: Residual Variation  
+**Reminder to commit (06) delete this line** ***AFTER*** **committing**  
+
+## Inference in Regression  
+### Inference in Regression  
+### Coding Example  
+### Prediction  
+### Lesson with `swirl()`: MultiVar Examples  
+**Reminder to commit (07) delete this line** ***AFTER*** **committing**  
+
+## Quiz 2  
+**Reminder to commit (S2) delete this line** ***AFTER*** **committing**  
+
+# Multivariable Regression, Residuals, & Diagnostics  
+## Multivariable Regression  
+### Multivariable Regression Part 1  
+### Multivariable Regression Part 2  
+### Multivariable Regression Continued  
+**Reminder to commit (08) delete this line** ***AFTER*** **committing**  
+
+## Multivariable Regression Tips and Tricks  
+### Multivariable Regression Examples Part 1  
+### Multivariable Regression Examples Part 2  
+### Multivariable Regression Examples Part 3  
+### Multivariable Regression Examples Part 4  
+### Lesson with `swirl()`: MultiVar Examples2  
+### Lesson with `swirl()`: MultiVar Examples3  
+**Reminder to commit (09) delete this line** ***AFTER*** **committing**  
+
+## Adjustment  
+### Adjustment Examples  
+**Reminder to commit (10) delete this line** ***AFTER*** **committing**  
+
+## Residuals Again  
+### Residuals and Diagnostics Part 1  
+### Residuals and Diagnostics Part 2  
+### Residuals and Diagnostics Part 3  
+### Lesson with `swirl()`: Residuals Diagnostics and Variation  
+**Reminder to commit (11) delete this line** ***AFTER*** **committing**  
+
+## Model Selection  
+### Model Selection Part 1  
+### Model Selection Part 2  
+### Model Selection Part 3  
+**Reminder to commit (12) delete this line** ***AFTER*** **committing**  
+
+## Practice Exercise in Regression Modeling  
+
+## Quiz 3  
+**Reminder to commit (S3) delete this line** ***AFTER*** **committing**  
+
+# Logistic Regression and Poisson Regression  
+## GLMs  
+## Logistic Regression  
+### Logistic Regression Part 1  
+### Logistic Regression Part 2  
+### Logistic Regression Part 3  
+### Lesson with `swirl()`: Variance Inflation Factors  
+### Lesson with `swirl()`: Overfitting and Underfitting  
+**Reminder to commit (13) delete this line** ***AFTER*** **committing**  
+
+## Poisson Regression  
+### Poisson Regression Part 1  
+### Poisson Regression Part 2  
+### Lesson with `swirl()`: Binary Outcomes  
+### Lesson with `swirl()`: Count Outcomes  
+**Reminder to commit (14) delete this line** ***AFTER*** **committing**  
+
+## Hodgepodge  
+### Mishmash  
+### Hodgepodge  
+**Reminder to commit (15) delete this line** ***AFTER*** **committing**  
+
+## Quiz 4  
+**Reminder to commit (S4) delete this line** ***AFTER*** **committing**  
+
+# Course Project   
+**Reminder to commit (P1) delete this line** ***BEFORE*** **committing**  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
