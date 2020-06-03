@@ -305,7 +305,52 @@ plot + geom_smooth(method = "lm", formula = y ~ x)
 
 ## Regression to the Mean  
 ### Regression to the Mean  
+* $P(Y < x|X = x)$ gets bigger as $x$ tends towards very large values.  
+        + Similarly $P(Y>x|X=x)$ gets bigger as $x$ tends towards very small values.  
+* Regression line is like the intrisic part of this relation  
+        + Unless $Cor(Y,X) = 1$ the intrinsic part isn't perfect  
+* Suppose we center $X$ (child's hieght) and $Y$ (parent's height) so that they both have a mean of 0  
+        + Then, recall, our regression line passes through $(0,0)$  
+* We then normalize the data points too  
+        + The slope of the regression line is $Cor(Y,X)$, regardless of which variable is the outcome (since both $sd$s are 1)  
+* If the outcome is plotted on the horizontal axis the slope of the least squares line will be $\frac{1}{Cor(Y,X)}$  
+
+#### Plotting the Regression Implicitly  
+```{r}
+library(UsingR); data(father.son)
+y <- father.son$sheight
+x <- father.son$fheight
+y <- (y - mean(y)) / sd(y)
+x <- (x - mean(x)) / sd(x)
+rho <- cor(x, y) #rho is std greek letter for correlations  
+plot <- ggplot(data.frame(Father = x, Son = y), aes(Father, Son)) +
+        geom_point(size = 6, colour = "#000000", alpha = 0.2) +
+        geom_point(size = 4, colour = "salmon", alpha = 0.2) +
+        xlim(-4,4) + 
+        ylim(-4,4) + #Std. norm being +/- 4 is very unlikely
+        geom_abline(intercept = 0, slope = 1, alpha = 0.5) +
+        geom_vline(xintercept = 0, alpha = 0.5) +
+        geom_hline(yintercept = 0, alpha = 0.5)
+plot + geom_abline(intercept = 0, slope = rho, size = 2, colour = "#5BC2E7")
+plot + geom_abline(intercept = 0, slope = 1/rho, size = 2, colour = "#7E2CB5")
+```
+* The blue line is where the Father's height is the predictor and the Son's height is the outcome  
+* The purple line is where the Son's hieght is the predictor and the Father's height is the outcome (`1/rho` because the outcome is on the horizontal axis)
+
 ### Lesson with `swirl()`: Residuals  
+* A residual is the distance between the actual data point and the regression line.  
+        + I've previously heard it also called the "Unexplained Variation" since the distance form the mean value to data point is the "Total Variation (from the mean)", then the distance from the mean to reg. line is the "Explained Variation".  
+* You can get some info on a data sets residuals by calling `summary` on the results of `lm` as seen below  
+```{r}
+summary(lm(child ~ parent, galton))
+```
+* `est` will return the estimate, $\hat{y}$  
+* `sqe` will calculate the sum of the squared residuals, also called the Residual Sum of Squares  
+* var(residuals) = var(data) - var(estimate)  
+        + As such the variance of residuals is always less than the variance of data  
+* The residuals shouldn't be correlated to either factor, if it did this may imply a diffrent relationship is present
+
+
 **Reminder to commit (04) delete this line** ***AFTER*** **committing**  
 
 ## Quiz 1  
