@@ -186,14 +186,121 @@ plot(jitter(child,4) ~ parent, galton)
 ```
 
 
-**Reminder to commit (02) delete this line** ***AFTER*** **committing**  
 
 ## Linear Least Squares  
+* Also called **Ordinary Least Squares (OLS)**; it fits a line through some data.  
+
 ### Notation and Background  
+#### Notation  
+* The empirical mean is defined as  
+$\bar{X} = \frac{1}{n}\sum_{i=1}^{n}X_i$  
+* If we subtract the mean from data points, we get data that has a mean of 0. That is, if we define:  
+$\tilde{X}_i=X_i-\bar{X}$.  
+        + The mean of $\tilde{X}_i$ is 0  
+* This process is called "**centering**" the random variables  
+* Recall from the previous lecture that the mean is the elast squares solution for minimizing $\sum_{i=1}^n(X_i-\mu)^2$  
+  
+#### The Emprical Standard Deviation adn Variance  
+* Define the empirical variance as  
+$S^2 = \frac{1}{n-1} \sum_{i=1}^n(X_i-\bar{X})^2 = \frac{1}{n-1}(\sum_{i=1}^n X_i^2 - n\bar{X}^2)$  
+* The empirical standard deviation is defined as $S = \sqrt{S^2}$.  
+        + Notice that the standard deviation has the same units as the data.  
+* The data defined by $\frac{X_i}{s}$ have an empirical standard deviation of 1. 
+        + This is called "**scaling**" the data.  
+
+#### Normalization  
+* The data defined by  
+$Z_i = \frac{X_i-\bar{X}}{s}$  
+have an empirical mean of 0 and an empirical standard deviation of 1.  
+* The process of centering then scaling the data is called "**normalizing**" the data.  
+* Normalized data are centered at 0 and have units equal to standard deviations of the original data.  
+* For example, a value of 2 from normalized data is saying that data point was two standard deviations larger than the mean.  
+
+#### The Empirical Covariance  
+* Consider now when we have pairs of data, $(X_i, Y_i)$  
+* Their empirical covariance is  
+$Cov(X,Y) = \frac{1}{n-1}\sum_{i=1}{n}(X_i-\bar{X})(Y_i-\bar{Y})\\ =\frac{1}{n-1}(\sum_{i=1}^nX_i Y_i - n\bar{X}\bar{Y})$  
+* The correlation is defined as  
+$Cor(X,Y) = \frac{Cov(X,Y)}{S_x S_y}$  
+        + Where $S_x$ and $S_y$ are the estimates of standard deviaitons for the X observations and Y observations, respectively.  
+        
+#### Some Facts About Correlation  
+* $Cor(X,Y) = Cor(Y, X)$  
+* $-1 \leq Cor(X,Y) \leq 1$  
+* $Cor(X,Y) = 1$ and $Cor(X,Y) = -1$ only when the $X$ or $Y$ observations fall perfectly on a positive or negative sloped line, repectively.  
+* $Cor(X,Y)$ measures the strength of the linear relationship between the $X$ and $Y$ data, with stronger relationships as $Cor(X,Y)$ heads towards either -1 or 1  {
+* $Cor(X,Y)=0$ implies no linear relationship  
+
+
 ### Linear Least Squares  
+#### Fitting the Best Line  
+* Let $Y_i$ be the $i^{th}$ child's height and $X_i$ be the $i^{th}$ (average over the pair of) parents' heights.  
+* Consider finding the best line   
+        + Child's Height = $\beta_0$ + Parent's Height * $\beta_1$  
+$\sum_{i=1}^{n} {Y_i - (\beta_0 + \beta_1 X_i)}^2$  
+  
+  
+* the least squares model fit to the line $Y = \beta_0 + \beta_1 X$ through the data pairs $(X_i, Y_i)$ with $Y_i$ as the outcome obtains the line $Y=\hat{\beta_0} + \hat{\beta_1} X$ where  
+$\hat{\beta_1} = Cor(Y,X)\frac{Sd(Y)}{Sd(X)}$  
+$\hat{\beta_0}=\bar{Y}-\hat{\beta_1}\bar{X}$  
+* $\hat{\beta_1}$ has the units of $Y/X$, $\hat{\beta_0}$ has the units of $Y$.  
+* The line passes through the point $(\bar{X},\bar{Y})$  
+* The slope of the regression line with $X$ as the outcome and $Y$ as the predictor is $\frac{Cor(Y,X)Sd(X)}{Sd(Y)}$  
+* The slope si the same one you would get if you centered the data, $(X_i - \bar{X}, Y_i-\bar{Y})$, and made a regression through the orgin  
+* If you normalized the data, $(\frac{X_i-\bar{X}}{Sd(X)}, \frac{Y_i-\bar{Y}}{Sd(Y)})$, the slope is $Cor(Y, X)$  
+
 ### Linear Least Squares Coding Example  
+```{r}
+y <- galton$child
+x <- galton$parent
+beta1 <- cor(y,x) * sd(y) / sd(x)
+beta0 <- mean(y) - beta1 * mean(x)
+
+#Showing the computations by hand are the same as coef from lm function
+rbind(c(beta0, beta1), coef(lm(y~x)))
+```
+  
+* `lm` stands for *linear model*  
+```{r}
+#The slope is the same in centered data  
+yc <- y - mean(y)
+xc <- x - mean(x)
+beta1 <- sum(yc * xc) / sum(xc^2)
+c(beta1, coef(lm(y ~ x))[2])
+lm(yc ~ xc - 1)$coef #minus 1 gets rid of intercept
+```
+
+```{r}
+#Normalizing variables results in the slope being the correlation
+yn <- (y - mean(y))/sd(y)
+xn <- (x - mean(x))/sd(x)
+results <- cbind(cor(y,x), lm(yn ~ xn)$coef[2], cor(yn, xn))
+colnames(results) <- c("cor(y,x)", "Slope(yn ~ xn)", "cor(yn, xn)")
+results
+```
+
+#### Adding a Linear Regression to ggplot  
+```{r}
+plot <- ggplot(filter(freqData, freq > 0), aes(parent, child)) +
+        scale_size(range = c(2, 20), guide = "none") +
+        geom_point(colour = "grey50", aes(size = freq + 20)) +
+        geom_point(aes(colour = freq, size = freq)) +
+        scale_colour_gradient(low = "#5BC2E7", high = "#FFFFFF")
+
+#Adding smoother
+#y ~ x is assumed if not given
+plot + geom_smooth(method = "lm", formula = y ~ x) 
+```
+  
+* A confidence interval is also given around the line automaticly  
+
 ### Technical Details  
+**[Brian Caffo discusses the proof for least squares regression beta_1 value in this video](https://youtu.be/COVQX8WZVA8)**  
+
+
 ### Lesson with `swirl()`: Least Squares Estimation  
+(No new content)
+
 **Reminder to commit (03) delete this line** ***AFTER*** **committing**  
 
 ## Regression to the Mean  
