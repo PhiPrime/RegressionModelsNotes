@@ -348,12 +348,105 @@ summary(lm(child ~ parent, galton))
 * `sqe` will calculate the sum of the squared residuals, also called the Residual Sum of Squares  
 * var(residuals) = var(data) - var(estimate)  
         + As such the variance of residuals is always less than the variance of data  
-* The residuals shouldn't be correlated to either factor, if it did this may imply a diffrent relationship is present
+* The residuals shouldn't be correlated to either factor, if it did this may imply a diffrent relationship is present  
 
-
-**Reminder to commit (04) delete this line** ***AFTER*** **committing**  
 
 ## Quiz 1  
+
+1. Given...
+
+```{r}
+x <- c(0.18, -1.54, 0.42, 0.95)
+w <- c(2, 1, 3, 1)
+```
+   Give the value of $\mu$ that minimizes the least squares equation $\sum_{i=1}{n}w_i(x_i-\mu)^2$  
+```{r}
+sum(w * x) / sum(w)
+```
+   
+  
+2. Given...  
+
+```{r}
+x <- c(0.8, 0.47, 0.51, 0.73, 0.36, 0.58, 0.57, 0.85, 0.44, 0.42)
+y <- c(1.39, 0.72, 1.55, 0.48, 1.19, -1.59, 1.23, -0.65, 1.49, 0.05)
+```
+   Fit the regression through the orgin and get the slope treating y as the outsome and x as the regressor.  
+
+```{r}
+lm(y ~ x - 1)$coef
+```
+  
+3. Do `data(mtcars)` from the datasets package and fit the regression model with mpg as the outcome and weight as the predictor. Give the slope coefficient.  
+
+```{r}
+data(mtcars)
+lm(mpg ~ wt, mtcars)$coef
+```
+  
+4. Consider data with an outcome (Y) and a predictor (X). The standard deviation of the predictor is one half that of the outcome. The correlation between the two variables is 0.5. What value would the slope coefficient for the regression model with Y as the outcome and X as the predictor?  
+
+```{r}
+0.5 * 2/1
+```
+  
+5. Students were given two hard tests and scores were normalized to have empirical mean 0 and variance 1. The correlation between the scores on the two tests was 0.4. What would be the expected score on Quiz 2 for a student who had a normalized score of 1.5 on Quiz 1?  
+
+```{r}
+beta1 <- 0.4 * 1/1
+beta0 <- 0 - beta1*0
+yhat <- beta0 + beta1*1.5
+yhat
+```
+  
+6. Given...  
+```{r}
+x <- c(8.58, 10.46, 9.01, 9.64, 8.86)
+```
+What is the value of the first measurement if x were normalized?
+
+```{r}
+xn <- (x-mean(x))/sd(x)
+xn[1]
+```
+  
+7. Given...  
+
+```{r}
+x <- c(0.8, 0.47, 0.51, 0.73, 0.36, 0.58, 0.57, 0.85, 0.44, 0.42)
+y <- c(1.39, 0.72, 1.55, 0.48, 1.19, -1.59, 1.23, -0.65, 1.49, 0.05)
+```
+   What is the intercept for fitting the model with x as the predictor and y as the outcome?  
+
+```{r}
+lm(y ~ x)$coef
+```
+  
+8. You know that both the predictor and response have mean 0. What can be said about the intercept when you fit a linear regression?
+
+* The intercept is the orgin
+  
+9. Given...  
+
+```{r}
+x <- c(0.8, 0.47, 0.51, 0.73, 0.36, 0.58, 0.57, 0.85, 0.44, 0.42)
+```
+   What value minimizes the sum of the squared distances between these points and itself?  
+```{r}
+mean(x)
+```
+   
+  
+  
+10. Let the slope having fit Y as the outcome and X as the predictor be denoted as $\beta_1$. Let the slope from fitting X as the outcome and Y as the predictor be denoted as $\gamma_1$. Suppose that you divide $\beta_1$ by $\gamma_1$ What is this ratio always equal to?  
+
+* $\beta_1 = Cor(Y,X)\frac{sd(Y)}{sd(X)}$  
+* $\gamma_1 = Cor(Y,X)\frac{sd(X)}{sd(Y)}$  
+* $\frac{\beta_1}{\gamma_1} = \frac{Cor(Y,X)*sd(Y)/sd(X)}{Cor(Y,X)*sd(X)/sd(Y)} = \frac{sd(Y)*sd(Y)}{sd(X)*sd(X)} = \frac{Var(Y)}{Var(X)}$  
+  
+
+
+
 **Reminder to commit (S1) delete this line** ***AFTER*** **committing**  
 
 # Linear Regression & Multivariable Regression  
