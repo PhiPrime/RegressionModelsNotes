@@ -444,17 +444,100 @@ mean(x)
 * $\gamma_1 = Cor(Y,X)\frac{sd(X)}{sd(Y)}$  
 * $\frac{\beta_1}{\gamma_1} = \frac{Cor(Y,X)*sd(Y)/sd(X)}{Cor(Y,X)*sd(X)/sd(Y)} = \frac{sd(Y)*sd(Y)}{sd(X)*sd(X)} = \frac{Var(Y)}{Var(X)}$  
   
-
-
-
-**Reminder to commit (S1) delete this line** ***AFTER*** **committing**  
-
 # Linear Regression & Multivariable Regression  
 ## Statistical Linear Regression Models  
 ### Statistical Linear Regression Models  
+#### Basic Regression Model with Additive Gaussian Errors  
+* Consider developing a probabilistic model for linear regression  
+$Y_i = \beta_0 + \beta_1 X_i + \epsilon_i$  
+        + Here the $\epsilon_i$ are assumed iid $N(0, \sigma^2)$  
+                - Can be thought of as accumulated variables that aren't modeled by act on the response as iid gaussian errors
+        + $E[Y_i | X_i = x_i] = \mu_i = \beta_0 + \beta_1 x_i$  
+        + $Var(Y_i | X_i = x_i) = \sigma^2$  
+
+
 ### Interpreting Coefficients  
+#### Intercept  
+* $\beta_0$ is the expected value of the response when the predictor is 0  
+$E[Y|X = 0] = \beta_0 + \beta_1 \times 0 = \beta_0$  
+        + This isn't always a value of interest, for example when $X = 0$ is impossible (x represents weight) or far outside of the range of data.  
+* A solution to non-interpretable intercepts is to shift the equation by some value, $a$ then define a new intercept, $\tilde{\beta_0}$.  
+$Y_i = \beta_0 + \beta_1X_i+\epsilon_i=\beta_0 + a\beta_1+\beta_1(X_i-a)+\epsilon_i = \tilde{\beta_0}+\beta_1(X_i-a)+\epsilon_i$  
+        + Shifting your $X$ values by value $a$ changes the intercept, but not the slope.  
+        + Often $a$ is set to $\bar{X}$ so that the intercept is inteerpretted as the expected response at the average X value.  
+
+#### Slope  
+* $\beta_1$ is the expected change in response for a 1 unit change in the predictor  
+* Consider the impact of changing the units of $X$.  
+$Y_i = \beta_0 + \beta_1X_i + \epsilon_i = \beta_o + \frac{\beta_1}{a}(X_ia) + \epsilon_i = \beta_0 + \tilde{\beta_1}(X_ia) + \epsilon_i$  
+        + Since $\beta_1$ is in units of Y/X we divide by the factor, $a$, that we're multiplying with $X_i$.  
+* Example: $X$ is height in *m* and $Y$ is weight in *kg*. Then $\beta_1$ is *kg/m*. Converting $X$ to *cm* implies multiplying $X$ by 100*cm/m*. To get $\beta_1$ in the right units, we have to divide by 100*cm/m* to get it to have the right units.  
+$Xm \times \frac{100cm}{m} = (100X)cm$ and $\beta_1 \frac{kg}{m} \times \frac{1m}{100cm} = (\frac{\beta_1}{100})\frac{kg}{cm}$
+
 ### Linear Regression for Prediction  
-### Lesson with `swirl()`: Introduction to Multivariable Regression  
+* We can get a prediction for Y, $\hat{y}$ by plugging in the X that we want into our model  
+$\hat{y} = \hat{\beta_0} + \hat{\beta_1}X$  
+
+#### Example using diamond Data  
+* The data in this example is diamond prices (in Sigapore dollars) and diamond weight in carats (1 carat = 0.2 g).  
+```{r}
+library(UsingR); data(diamond); library(tidyverse)
+plot <- ggplot(diamond, aes(carat, price)) +
+        xlab("Mass (carats)") +
+        ylab("Price (SIN $)") +
+        geom_point(size = 6, colour = "#000000", alpha = 0.2) +
+        geom_point(size = 5, colour = "#5BC2E7", alpha = 0.2)
+plot + geom_smooth(method = "lm", colour = "#000000", formula = y ~ x)
+```
+#### Creating a Model  
+```{r}
+# Fitting the linear regression model
+fit <- lm(price ~ carat, data = diamond)
+coef(fit)
+```
+
+* We estimate an expected 3721.02 (SIN) dollar increase in price for every increase of 1 carat in mass of diamonds.
+* The intercept, -259.63 is the expected price of a 0 carat diamond, which doesn't make sense to interpret.  
+        + As such we'll mean center our reg. line  
+#### Centering Model on the Mean
+```{r}
+cfit <- lm(price ~ I(carat - mean(carat)), data = diamond)
+cfit$coef
+```
+* To do arithmetic operations in the formula in `lm` you have to surround the operation with the `I` function  
+* The slope has not changed  
+* The intercept has changed to $500$, the expected price for the average sized diamond of the data (`r round(mean(diamond$carat), 3)` carats).  
+  
+#### Changing Units in the Model  
+* Change unit to 1/10 of a carrat  
+```{r}
+tenthfit <- lm(price ~ I(carat * 10), data = diamond)
+coef(tenthfit)
+```
+* So now the slope is interpretted as a `r round(tenthfit$coef[2], 2)` dollar increase for every additional 0.1 carrats of diamond.  
+
+#### Estimating a Value  
+```{r}
+newDiamonds <- c(0.16, 0.27, 0.34)
+#Computing manually
+fit$coef[1] + fit$coef[2] * newDiamonds
+
+#Using predict function
+results <- predict(fit, newdata = data.frame(carat = newDiamonds))
+names(results) <- as.character(newDiamonds) #renaming not required
+results
+```
+
+```{r}
+#Using predict without `newdata` will return y-hat for given x values
+predict(fit)
+plot + geom_smooth(method = "lm", colour = "#000000", formula = y ~ x) +
+        geom_point(aes(y = as.numeric(predict(fit))),
+                   size = 3, color = "#FF0000", shape = 17)
+```
+
+
+
 **Reminder to commit (05) delete this line** ***AFTER*** **committing**  
 
 ## Residuals  
@@ -468,6 +551,7 @@ mean(x)
 ### Inference in Regression  
 ### Coding Example  
 ### Prediction  
+### Lesson with `swirl()`: Introduction to Multivariable Regression  
 ### Lesson with `swirl()`: MultiVar Examples  
 **Reminder to commit (07) delete this line** ***AFTER*** **committing**  
 
