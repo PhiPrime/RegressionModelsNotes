@@ -476,7 +476,7 @@ $Xm \times \frac{100cm}{m} = (100X)cm$ and $\beta_1 \frac{kg}{m} \times \frac{1m
 
 ### Linear Regression for Prediction  
 * We can get a prediction for Y, $\hat{y}$ by plugging in the X that we want into our model  
-$\hat{y} = \hat{\beta_0} + \hat{\beta_1}X$  
+$\hat{y}_i = \hat{\beta_0} + \hat{\beta_1}X_i$  
 
 #### Example using diamond Data  
 * The data in this example is diamond prices (in Sigapore dollars) and diamond weight in carats (1 carat = 0.2 g).  
@@ -542,9 +542,156 @@ plot + geom_smooth(method = "lm", colour = "#000000", formula = y ~ x) +
 
 ## Residuals  
 ### Residuals  
+* The residuals are the variation from the regression line, that is left unexplained by our model, $Y_i = \beta_0 + \beta_1X_i + \epsilon_i$ where $\epsilon_i \sim N(0,\sigma^2)$.  
+* Observed outcome $i$ is $Y_i$ at predictor value $X_i$  
+* Predicted outcome $i$ is $\hat{Y}_i$ at predictor value $X_i$ is $\hat{Y}_i = \hat{\beta}_0 + \hat{\beta}_1 X_i$  
+* Residual, $e_i$,  is the difference between the observed and predicted outcome: $e_i = Y_i - \hat{Y}_i$.  
+        + This is the vertical distanc ebetween the observed data point and the regression line  
+* Least squares minimizes these residuals, the equation $\sum_{i=1}^n e_i^2$  
+* The $e_i$ can be thought of as estimates of the $\epsilon_i$  
+
+#### Properties of the Residuals  
+* $E[e_i] = 0$  
+* If an intercept is included, $\sum_{i=1}^n e_i = 0$  
+* If a regressor variable, $X_i$, is included in the model $\sum_{i=1}^n e_iX_i = 0$  
+* Residuals are useful for investigating poor model fit  
+        + Residual plots can highlight these poor fits  
+* Residuals can be though of as the outcome ($Y$) with the linear association of the predictor ($X$) removed.  
+* One differentiates residual variation (variation after removing the predictor) from systematic variation (variation explained by the regression model).  
+
+
 ### Residuals, Coding Example  
+* Using diamond dataset again  
+```{r}
+data("diamond")
+y <- diamond$price 
+x <- diamond$carat
+fit <- lm(y ~ x)
+
+e <- resid(fit) #Getting residuals
+
+yhat <- predict(fit)
+
+# Showing residuals are the same as y - yhat (within a floating point error)
+max(abs(e - (y - yhat)))
+
+# And again, but manually entering the equation for yhat
+max(abs(e - (y - (coef(fit)[1] + coef(fit)[2] * x))))
+
+#Showing sum of resid and resid*x are both 0
+sum(e)
+sum(e * x)
+```
+
+```{r}
+#Plotting the residuals 
+plot <- ggplot(data.frame(x = x, y = y, resid = e), aes(x, resid)) +
+        
+        geom_segment(aes(xend = x, yend = 0), colour = "#FF0000") +
+        
+        geom_point(size = 2, colour = "#5BC2E7", alpha = 0.5) +
+        xlab("Mass (carats)") +
+        ylab("Residuals (SIN $)") +
+        geom_hline(yintercept = 0, color = "#000000")
+plot
+```
+
+#### Using Residual Plot to Detect a Poorly Fit Model  
+* We're going to generate some data that looks linear but actually has an underlying relation to it that will become more apparent after plotting the residuals  
+```{r}
+set.seed(1618033)
+x <- runif(100, -3, 3)
+y <- x + sin(x) + #Y is related with sin(x), lm will expose the sin(x) rel.
+        rnorm(100, sd = .2) # For noise
+plot <- ggplot(data.frame(x = x, y = y), aes(x,y)) +
+        geom_smooth(method = "lm", colour = "#000000") +
+        geom_point(size = 7, colour = "#000000", alpha = 0.4) +
+        geom_point(size = 5, colour = "#FF0000", alpha = 0.4)
+
+residplot <- ggplot(data.frame(x = x, resid = resid(lm(y ~ x))), 
+                    aes(x, resid)) +
+        geom_hline(yintercept = 0) +
+        geom_point(size = 7, colour = "#000000", alpha = 0.4) +
+        geom_point(size = 5, colour = "#FF0000", alpha = 0.4) +
+        labs(x = "X", y = "Residual")
+plot
+residplot
+```
+
+* A secondary pattern can be seen in the residual plot, indicating there might be a better model than a line.  
+
+#### Detecting Heteroskedasticity with a Residual Plot  
+```{r}
+x <- runif(100, 0, 6)
+y <- x + rnorm(100, mean = 0, sd = 0.001 * x)#sd increases as x increases
+plot <- ggplot(data.frame(x = x, y = y), aes(x,y)) +
+        geom_smooth(method = "lm", colour = "black") +
+        geom_point(size = 7, colour = "#000000", alpha = 0.4) +
+        geom_point(size = 5, colour = "#FF0000", alpha = 0.4)
+residplot <- ggplot(data.frame(x = x, resid = resid(lm(y ~ x))), 
+                    aes(x,resid)) +
+        geom_hline(yintercept = 0, colour = "#000000") +
+        geom_point(size = 7, colour = "#000000", alpha = 0.4) +
+        geom_point(size = 5, colour = "#FF0000", alpha = 0.4)
+plot
+residplot
+```
+* The plot looks linear, but plotting the residuals reveals an underlying pattern
+
+
 ### Residual Variance  
+#### Estimating Residual Variaiton  
+* Model: $Y_i = \beta_0 + \beta_1 X_i + \epsilon_i$ where $\epsilon_i \sim N(0, \sigma^2)$  
+* The mean linear estimate of $\sigma^2$ is $\frac{1}{n}\sum_{i=1}^ne_i^2$, the average squared residual  
+* Most people use:  
+$\hat{\sigma}^2 = \frac{1}{n-2}\sum_{i=1}^ne_i^2$  
+        + with $n-2$ instead of $n$ so that $E[\hat{\sigma}^2]=\sigma^2$  
+
+#### Diamond Example  
+```{r}
+y <- diamond$price
+x <- diamond$carat
+n <- length(y)
+
+#Solving resid s.d. implicitly
+sqrt(sum(resid(fit)^2) / (n - 2))
+
+#Getting resid deviation with functions
+fit <- lm(y ~ x)
+summary(fit)$sigma
+
+#You can see the value in the summary print out here:
+summary(fit)
+```
+
+#### Summarizing Variation  
+* **Total Variability** - the variability around an intercept (mean only regression)
+        + $\sum_{i=1}^n(Y_i - \bar{Y})^2$  
+        + Sum of Regression & Error Variability  
+* **Regression Variability** - the variability that is explained by adding the predictor  
+        + $\sum_{i=1}^n(\hat{Y}_i - \bar{Y})^2$  
+* **Error Variability** - what's leftover around the regression line  
+        + $\sum_{i=1}^n(Y_i - \hat{Y})^2$  
+
+#### R Squared, the Coefficent of Determination  
+* R squared is the percentage of the total variability that is explained by the linear relationship with the predictor  
+$R^2 = \frac{\sum_{i=1}^n(\hat{Y}_i - \bar{Y})^2}{\sum_{i=1}^n(Y_i - \bar{Y})^2}$  
+* $R^2$ is the percentage of variation explained by the regression model  
+* $0 \leq R^2 \leq 1$  
+* $R^2$ is the sample correlation squared  
+* $R^2$ can bea  misleading summary of model fit  
+        + Deleting data can inflate $R^2$  
+        + (For later,) Adding terms to a regression model always increases $R^2$  
+* Execute `example(anscombe)` to see the following data:  
+        + Basically same mean and variance of X and Y  
+        + Identical correlations (hence the same $R^2$ value)  
+        + Same linear regression relationship  
+
+
 ### Lesson with `swirl()`: Residual Variation  
+* `deviance` will calculate the sum of the squares of a `lm`  
+
+
 **Reminder to commit (06) delete this line** ***AFTER*** **committing**  
 
 ## Inference in Regression  
