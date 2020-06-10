@@ -953,14 +953,99 @@ results <- summary(lm(mpg~wt, mtcars))
 
 10. Do the residuals always have to sum to 0 in linear regression?  
 * Yes, if an intercept is included in the resid.s  
-  
-**Reminder to commit (S2) delete this line** ***AFTER*** **committing**  
 
 # Multivariable Regression, Residuals, & Diagnostics  
 ## Multivariable Regression  
 ### Multivariable Regression Part 1  
+#### Intro Scenerio Example  
+* If one were to present evidence of a relationship between breath mint useage (mints per day, X) and pulmonary function (lung health measurement in FEV (Forced Expiratory Volume)) 
+        + You may be skeptical, for smokers tend to use more breath mints than non-smokers, and smoking is related to a loss in pulmonary function.  
+        + To conteract this skepticism one may want to investigate if non-smoking breath mint users had lower lung function than non-smoking non-breath mint users and if smoking breath mint suers had lower lung function than smoking non-breath mint users.  
+        + In other words, to consider these results, we would have to demonstrate that the results hold when smoking status is held fixed.  
+        
+#### The Linear Model  
+* How can one generalize Simple Linear Regression (SLR) to incorporate lots of regressors for the purpose of predictions?  
+* Are there consequences for adding lots fo regressors?  
+        + Omitting variables can cause incorrect predictions  
+        + Adding too many variables into a model will eventually give 0 residuals, even if adding in random garbage predictors. This is called **over-fitting**  
+* The general linear model extends SLR by adding terms linearly intot he model  
+$Y_i = \beta_1X_{1i} + \beta_2X_{2i} + ... + \beta_pX_{pi} + \epsilon_i = \sum_{k=1}^p(X_{ik}\beta_j)+\epsilon_i$  
+        + Here $X_{1i} = 1$ typically, so that an intercept is included.  
+* Least squares (and hence Middle of Least squares estimates under iid Gaussianity of the errors) minimizes:  
+$\sum_{i=1}^n(Y_i-\sum_{k=1}^pX_{ki}\beta_j)^2$
+        + Note that the important linearity is linearity in the coefficients, thus:  
+$Y_i = \beta_1X_{1i}^2 + \beta_2X_{2i}^2 + ... + \beta_pX_{pi}^2 + \epsilon_i$  
+        + The above equation is still a linear model, we've just squared the element of the predictors  
+
+
 ### Multivariable Regression Part 2  
+#### How to Get Estimates  
+* Recall that the Least Squares estimate for regression through the origin, $E[Y_i] = X_{1i}\beta_1$, was $\sum(X_iY_i)/\sum X_i^2$   
+* For two regressors we would have a regression line of $E[Y_i]=X_{1i}\beta_1 + X_{2i}\beta_2 = \mu_i$ and least squares would minimize $\sum_{i=1}^n(Y_i-X_{1i}\beta_1-X_{2i}\beta_2)^2$  
+* With two independent variables, $X_1, X_2$, being used in a `lm` $X_1$ has to then be adjusted for $X_2$ being involved  
+* So for the equation: $E[Y_i]=X_{1i}\hat{\beta_1} + X_{2i}\hat{\beta_2}$  
+        + $\hat{\beta_1} = \frac{\sum_{i=1}^n(e_{i,Y|X_2} * e_{i, X_1|X_2})}{\sum_{i=1}^ne_{i,X_1|X_2}^2}$  
+                - Remember that $e_i$ is just a col. vector of 0's except at the $i^{th}$ position, where there is a 1.  
+        + Essentially the regression estimate for $\beta_1$ is the regression through the origin estimate having regressed $X_2$ out of both the response and the predictor.  
+                - Similarly, the regression estimate for $\beta_2$ is the regression through the orgin estimate having regressed $X_1$ out of both the response and the predictor.  
+        + Multivariate regression estimates are exactly those having removed the linear relationship of the other variables from both the regressor and response.  
+
+* $Y_i = \beta_1 X_{1i}+\beta_2 X_{2i}$ where $X_{2i} = 1$ is an intercept term.  
+* Notice the fitted coefficient of $X_{2i}$ on $Y_i$ is $\bar{Y}$  
+        + The residuals $e_{i,Y|X_2} = Y_i - \bar{Y}$  
+* Notice the fitted coefficient of $X_{2i}$ on $X{1i}$ is $\bar{X}_1$  
+        + The residuals $e_{i,X_1|X_2} = X_{1i}-\bar{X}_1$  
+* Thus  
+$\hat{\beta_1} = \frac{\sum_{i=1}^n(e_{i,Y|X_2} * e_{i, X_1|X_2})}{\sum_{i=1}^ne_{i,X_1|X_2}^2} \\= \frac{\sum_{i=1}^n(X_i-\bar{X})(Y_i-\bar{Y})}{\sum_{i=1}^n(X_i-\bar{X})^2} \\= Cor(X,Y)\frac{Sd(Y)}{Sd(X)}$  
+
+* For multiple variables this case just keeps adding terms, the least square solutions have to minimize:  
+$\sum_{i=1}^n(Y_i-X_{1i}\beta_1 - ... - X_{pi}\beta_p)^2$  
+        + The least squares estimate for the coefficeint of a multivariate regression model is exactly regression through the orgin with the linear relationships with the other regressors removed from both the regressor and outcome by taking residuals.  
+        + In this sense, multivariate regression "adjusts" a coefficient for the linear impact of the other variables.  
+
 ### Multivariable Regression Continued  
+#### Simulation
+```{r}
+set.seed(1618033)
+n <- 100
+x1 <- rnorm(n)
+x2 <- rnorm(n)
+x3 <- rnorm(n)
+y <- 1 + x1 + x2 + x3 +
+        rnorm(n, sd = .1) #rand. noise as \epsilon term
+ey <- resid(lm(y ~ x2 + x3))
+ex <- resid(lm(x1 ~ x2 + x3))
+sum(ey * ex) / sum(ex ^ 2) #Reg. through orgin estimate
+coef(lm(ey ~ ex - 1)) #Reg. est of ey to ex  
+coef(lm(y ~ x1 + x2 + x3)) #Notice x1 is same as above
+```
+
+#### Interpretation of the Coeficients  
+* Our model is $E[Y|X_1 = x_1,...,X_p=x_p] = \sum_{k=1}^p x_k\beta_k$  
+        + Where $\beta_k$ is the coeffient for each $x_k$  
+* The interpretation of a multivaraite regression coefficient is the expected change in the response per unit change in the regressor, holding all of the other regressors fixed. As such the diffrence between adding 1 to a regressor$_i$ and the orginal equation is just $\beta_i$, as seen below  
+        + Adding 1: $E[Y|X_1 = x_1 + 1,...,X_p=x_p] =(x_1 + 1)\beta_1 + \sum_{k=2}^p x_k\beta_k$  
+        + Difference: $(x_1 + 1)\beta_1 + \sum_{k=2}^px_k\beta_k - \sum_{k=1}^px_k\beta_k=\beta_1$  
+  
+#### Fitted Values, Residuals and Residual Variation  
+ALL of our Simple Linear Regression (SLR) quantites can be extended to linear models of multiple dimensions  
+* Model: $Y_i = \sum_{k=1}^p X_{ik}\beta_k + \epsilon_i$ where $\epsilon_i \sim N(0,\sigma^2)$  
+* Fitted Responses: $\hat{Y}_i = \sum_{k=1}^pX_{ik}\hat{\beta}_k$  
+* Residuals: $e_i = Y_i - \hat{Y}_i$  
+* Variance ewstiamte $\hat{\sigma}^2 = \frac{1}{n-p}\sum_{i=1}^ne_i^2$  
+* To get predicted responses at new values, $x_1,...,x_p$ simply plug them into the linear model $\sum_{k=1}^px_k\hat{\beta}_k$  
+* Each coefficient has their own standard error, $\hat{\sigma}_{\hat{\beta}_k}$, and as such $\frac{\hat{\beta}_k-\beta_k}{\hat{\sigma}_{\hat{\beta}_k}}$ follows a $T$ distribution with $n-p$ degrees of freedom  
+* Predicted responses have standard errors and we can calculate predicted and expected rewsponse intervals.  
+  
+#### Linear Models Summary  
+* Linear Models are the single most important applied statistical and amchine learning technique, *by far*.  
+* They can...
+        + decompose a signal into its harmonics  
+        + flexibly fit complicated functions & curves.  
+        + fit factor variables as predictors  
+        + uncover complex multivariate relationships with the response  
+        + build accurate prediction models  
+
 **Reminder to commit (08) delete this line** ***AFTER*** **committing**  
 
 ## Multivariable Regression Tips and Tricks  
