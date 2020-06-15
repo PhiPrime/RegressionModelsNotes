@@ -1045,16 +1045,271 @@ ALL of our Simple Linear Regression (SLR) quantites can be extended to linear mo
         + fit factor variables as predictors  
         + uncover complex multivariate relationships with the response  
         + build accurate prediction models  
-
-**Reminder to commit (08) delete this line** ***AFTER*** **committing**  
+ 
 
 ## Multivariable Regression Tips and Tricks  
 ### Multivariable Regression Examples Part 1  
+```{r}
+library(datasets); data(swiss)
+```
+* `swiss` is a data frame with 47 observations on 6 variables  
+1) *Fertility* - lg, a "common standardized fertility measure"  
+2) *Agriculture* - % of males invovled in agriculture as occupation  
+3) *Examination* - % of draftees receiving highest mark on army examination  
+4) *Education* - % education beyond primary school for draftees  
+5) *Catholic* - % catholic (as opposed to protestant)  
+6) *Infant.Mortality* - % of live births who live less than 1 year  
+  - All variables but *Fertility* give proportions of the population  
+  - These data are from Switzerland in 1888 from 47 French-speaking "provinces"  
+```{r}
+all <- summary(lm(Fertility ~ . , data = swiss))
+all$coefficients
+```
+
+* Each estimate would be interpreted as: Our model estimates an expected `Estimate` Increase/Decrease in standardized fertility for every 1% increase in percentage of `Explanatory Variable`  
+* The `Std. Error` describes how precise the `Estimate` is  
+* The t-test for $H_0:\beta_{Agri}=0$ versus $H_a:\beta_{Agri} \neq 0$ is significant.  
+  + R gives the `t value` for this test and the `Pr(>|t|)`, P-value  
+  
+* Having only one predictor will change to coefficents  
+```{r}
+onlyAgri <- summary(lm(Fertility ~ Agriculture, data = swiss))
+onlyAgri$coefficients
+
+all$coefficients[1:2,]
+```
+
+* This diffrence when including new factors is a version of Simpson's paradox  
+
+#### Simulation  
+```{r}
+set.seed(1618033)
+n <- 100
+x2 <- 1:n
+x1 <- 0.01 * x2 + runif(n, -0.1, 0.1)
+y <- -x1 + x2 + rnorm(n, sd = 0.01)
+summary(lm(y ~ x1))$coef
+```
+
+* Only looking at `x1` doesn't show the underneath pattern generated from `x2` and gives a very large slope, however adding in `x2` ...  
+```{r}
+summary(lm(y ~ x1 + x2))$coef
+```
+
+* ... gives a more accurate representation of the true coefficients for `y`.  
+* Let's do some plotting:  
+```{r message = FALSE}
+library(tidyverse)
+dat <- data.frame(y = y, x1 = x1, x2 = x2, 
+                  ey = resid(lm(y ~ x2)), ex1 = resid(lm(x1 ~ x2)))
+plot <- ggplot(dat, aes(x1, y, colour = x2)) +
+  geom_point(colour = "#888888", size = 5) +
+  geom_point(size = 4) +
+  geom_smooth(method = lm, se = FALSE, colour = "#000000") 
+plot
+```
+
+* Although `y` grows with `x1` it can also be seen that `x2` grows as `x1` grows  
+* Now let's look at the residuals of `y ~ x2` versus `x1 ~ x2`  
+```{r}
+residplot <- ggplot(dat, aes(ex1, ey, colour = x2)) +
+  geom_point(colour = "#888888", size = 5) +
+  geom_smooth(method = lm, se = FALSE, colour = "#000000") +
+  geom_point(size = 4)
+residplot
+```
+
+* This smoother has the slope of the `estimate` for `x1` above  
+
+#### Back to `swiss` Data Set  
+* The sign reverses itself witht the inclusion of Examinaiton and Education  
+* The percent of males in the province working in agriculture is negatively related to educational attainment (correlation of -0.6395) and Educationa nd Examination (correlation of 0.6984) are obviously measuring similar things.  
+  + Is the positive marginal an artifact for not having accounted for the Education level? (Education does have a strong effect, btw)  
+* At the minimum, anyone claiming that provinces that focus more on agriculture have higher fertility rates would immediately be open to criticism due to these other cofactors present in the data.  
+
+
 ### Multivariable Regression Examples Part 2  
+* Consider the linear model  
+$Y_i = \beta_0 + X_{i1}\beta_i + \epsilon_i$  
+  + Where each $X_{i1}$ is binary such that the value is 1 if measurement, $i$, is in a group and 0 otherwise.  
+* Then for people in the group, $E[Y_i] = \beta_0 + \beta_1$  
+* And for people not in the group, $E[Y_i] = \beta_0$  
+  + As such the mean of the treated group is $\hat{\beta}_0 + \hat{\beta}_1$  
+  + Likewise, the mean for the control group is just $\hat{\beta}_0$  
+* $\beta_1$ is interpretted as the increase or decrease in the mean of the treated group  
+  + This also gives the inference for the two groups, the same value a 2-sample t-test would give you  
+
+#### Comparing More Than 2 Levels  
+* Since the value of $\beta_1$ gives the value of a 2-sample t-test, you can extend this to perform t-tests across multiple variables  
+* Consider a multilevel factor level. For example a three level factor such as the US political party affiliation: Republican, Democrat, Independent.  
+* $Y_i = \beta_0 + X_{i1}\beta_1+X_{i2}\beta_2+\epsilon_i$  
+  + $X_{i1}$ is 1 for Republicans and 0 otherwise  
+  + $X_{i2}$ is 1 for Democrats and 0 otherwise  
+* If $i$ is **...** then $E[Y_i] = ...$  
+  + **Republican** $= \beta_0 + \beta_1$  
+  + **Democrat** $= \beta_0 + \beta_2$  
+  + **Independent** $= \beta_0$  
+* $\beta_1$ compares Republicans to Independents  
+* $\beta_2$ compares Democrats to Independents  
+* $\beta_1 - \beta_2$ compares Republicans to Democrats  
+* (Choice of reference category changes the interpretation.)  
+
+#### Example in R with InsectSprays  
+```{r}
+data(InsectSprays)
+mus <- InsectSprays %>% group_by(spray) %>% summarize(mean = mean(count))
+dat <- merge(InsectSprays, mus, by = "spray")
+plot <- ggplot(dat, aes(spray, count, fill = spray)) +
+  geom_violin(colour = "#000000", size = 1) +
+  labs(x = "Type of Spray", y = "Insect Count") +
+  geom_point(aes(y=mean), shape = 17)
+plot
+```
+  
+* Fitting `count` as a response to `spray`, displaying mean with a triangle    
+```{r}
+res <- lm(count ~ spray, InsectSprays)
+summary(res)$coef
+```
+  
+* It can be seen that `sprayA` is missing, this is because all of the other sprays are in comparision to `sprayA`, so the estimate values are indicating the change of each spray relative to spray A  
+* The average count of `sprayA` is just the `Estimate` of the `(Intercept)`  
+* The average count of `sprayC` would be the `Estimate` of the `(Intercept)` plus the `Estimate` of `sprayC`, as seen below  
+```{r}
+c(summary(res)$coef[1,1], mus$mean[1])
+c(summary(res)$coef[1,1] + summary(res)$coef[3,1], mus$mean[3])
+```
+
+#### Hard Coding the Dummy Variables  
+```{r}
+summary(lm(count ~
+             I(1 * (spray == 'B')) + I(1 * (spray == 'C')) + 
+             I(1 * (spray == 'D')) + I(1 * (spray == 'E')) + 
+             I(1 * (spray == 'F')),
+           data = InsectSprays))$coef
+summary(res)$coef
+```
+  
+* As such we can change what the $\beta_0$ spray is, aka the reference level  
+```{r}
+summary(lm(count ~
+             I(1 * (spray == 'A')) + I(1 * (spray == 'B')) + 
+             I(1 * (spray == 'D')) + I(1 * (spray == 'E')) + 
+             I(1 * (spray == 'F')),
+           data = InsectSprays))$coef
+```
+  
+* Instead of typing all the factors one can just `relevel` the factors  
+```{r}
+spray_ <- relevel(InsectSprays$spray, "C")
+summary(lm(count ~ spray_, data = InsectSprays))$coef
+```
+  
+* Including all the parameters will just return `NA` for one of the parameters (In this case it would be for `sprayA`)  
+* We can remove the intercept to get a set of all the levels  
+```{r}
+summary(lm(count ~ 0 + spray, data = InsectSprays))$coef
+```
+  
+#### Summary  
+* If we treat `spray` as a factor, R includes an intercept and omits the alphabetically first level of the factor.  
+  + All t-tests are for comparisons of Sprays versus Spray A  
+  + Emprirical mean for A is the `(Intercept)`  
+  + Other group means are the intercept plus their coefficient  
+* If we omit an intercept, then it includes terms for all levels of the factor.  
+  + Group means are the coeffcients  
+  + Tests are tests of whether the groups are different than zero.
+* If we want comparisions between, say between Spray B and C, we could refit the model with C (or B) as the reference level.  
+
+Additional Tid-bits on this data  
+* Counts are counded from below by 0, which violates the assumption of normality of the errors.  
+  + Also there are counts near 0, so both the actual assumption and the intent of the assumption are violated.  
+* Variance does not appear to be constant  
+* Perhaps taking logs of the counts would help.  
+  + There are 0 counts, so perhaps `log(count + 1)`  
+* Poisson GLMs for fitting count data will be covered later in this course.  
+* Because of these issues our means are correct, but our inference would not be.  
+
+
 ### Multivariable Regression Examples Part 3  
+We'll be looking at the `swiss` data set to see how we can translate a proportion to a binary variable  
+```{r}
+library(datasets); data(swiss)
+##Create binary var from Catholic, 1 if > 50%, 0 o/w
+dat <- swiss %>% mutate(CatholicBin = factor(1 * (Catholic > 50))) %>%
+  select(Agriculture, Fertility, CatholicBin)
+```
+  
+Now we can plot by subsets of variables  
+```{r}
+pal <- c("#5BC2E7", "#7851A9")
+plot <- ggplot(dat, aes(Agriculture, Fertility, colour = CatholicBin)) +
+  scale_colour_manual(values = pal) +
+  geom_point(size = 6, colour = "#000000") + geom_point(size = 4) +
+  labs(x = "% in Agriculture", y = "Fertility") 
+plot
+```
+  
+#### Fitting the Model  
+* $y = Fertility$  
+* $x_1 = Agriculture$  
+* $x_2 = \text{1 if over .50 Catholic, 0 otherwise}$  
+Then our model could be:  
+* $E[y|x_1x_2] = \beta_0 + \beta_1x_1 + \beta_2x_2$  
+Which would give us the expected values of:  
+* $E[y|x_2=0] = \beta_0 + \beta_1x_1$  
+* $E[y|x_2=1] = \beta_0 + \beta_2 + \beta_1x_1$  
+These two models have the same slope, $\beta_1$, but different intercepts.  
+To make a model that has diffrent slopes we could fit it as such:  
+* $E[y|x_1x_2] = \beta_0 + \beta_1x_1 + \beta_2x_2 + \beta_3x_1x_2$  
+We then have the following expected values:  
+* $E[y|x_2=0] = \beta_0 + \beta_1x_1$  
+* $E[y|x_2=1] = \beta_0 + \beta_1x_1 + \beta_2 + \beta_3x_1\\=\beta_0 + \beta_2 + (\beta_1 + \beta_3)x_1$  
+These models now have both different intercepts and slopes because we included an **interaction term**, $\beta_3x_1x_2$  
+
 ### Multivariable Regression Examples Part 4  
+We'll now look an example of a model with an **interaction term**  
+```{r}
+##Fitting without CatholicBin
+fafit <- lm(Fertility ~ Agriculture, data = dat)
+plot + geom_abline(intercept = coef(fafit)[1], 
+                   slope = coef(fafit)[2], size = 2)
+```
+
+```{r}
+##Fitting first proposed model
+facfit <- lm(Fertility ~ Agriculture + CatholicBin, data = dat)
+plot + geom_abline(intercept = coef(facfit)[1], slope = coef(facfit)[2],
+                   size = 2, colour = pal[1]) +
+  geom_abline(intercept = coef(facfit)[1] + coef(facfit)[3], 
+              slope = coef(facfit)[2], size = 2, colour = pal[2])
+```
+  
+```{r}
+##Fitting model with diffrent slopes  
+interactfit <- lm(Fertility ~ Agriculture * CatholicBin, dat)
+##Let's look at the coef.s before tossing them all in
+summary(interactfit)$coef
+coef(interactfit)
+```
+* We can see here that `R` has automaticly made 3 variables: $x_1$, Agriculture; $x_2$, CatholicBin; and $x_3$, Agriculture*CatholicBin.  
+```{r}
+plot + geom_abline(intercept = coef(interactfit)[1], 
+                   slope = coef(interactfit)[2], 
+                   size = 2, colour = pal[1]) +
+  geom_abline(intercept = coef(interactfit)[1] + coef(interactfit)[3],#Int.Var
+              slope = coef(interactfit)[2] + coef(interactfit)[4],
+              size = 2, colour = pal[2])
+```
+
+
 ### Lesson with `swirl()`: MultiVar Examples2  
+(No new content, review of `InsectSprays` example)  
+
 ### Lesson with `swirl()`: MultiVar Examples3  
+This lesson looks at WHO data on hunger but essentially analyzes it the same as the `swiss` dataset.  
+
+
 **Reminder to commit (09) delete this line** ***AFTER*** **committing**  
 
 ## Adjustment  
