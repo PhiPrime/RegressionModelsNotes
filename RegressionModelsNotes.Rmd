@@ -1475,20 +1475,273 @@ c(mean(y[1:(n/2 - 1)]), mean(y[n/2:n]))
 * The results of these analyses deal witht eh impact of variables on associations  
   + Ascertaining mechanisms or cause are difficult subjects to be added on top of difficulty in understanding multivariate associations  
   
-
-**Reminder to commit (10) delete this line** ***AFTER*** **committing**  
+ 
 
 ## Residuals Again  
 ### Residuals and Diagnostics Part 1  
+#### The Linear Model  
+* Specified as $Y_i = \sum_{k=1}^pX_{ik}\beta_j+\epsilon_i$  
+* We'll also assume here that $\epsilon_i\sim^{iid} N(0,\sigma^2)$  
+* The residuals are defined as $e_i = Y_i-\hat{Y}_i = Y_i - \sum_{k=1}^pX_{ik}\hat{\beta}_j$  
+* Our estimate of residual variation is $\hat{\sigma}^2 = \frac{\sum_{i=1}^ne_i^2}{n-p}$, the $n-p$ is such that $E[\hat{\sigma}^2]=\sigma^2$  
+```{r}
+data(swiss); par(mfrow = c(2,2))
+fit <- lm(Fertility ~ . , data = swiss)
+#R will splot the fit with a series of residual and diagnostic plots
+plot(fit)
+```
+  
+* Residuals vs. Fitted  
+  + Plots residuals against the predicted (fitted) values.  
+* Normal Q-Q  
+  + Tests for normallity of error terms, plots true z-scores versus normalized z-scores  
+* Scale-Location  
+  + Plots standardized residuals against fitted values, scaled so they are like a t-statistic  
+* Residuals vs Leverage  
+  + Plots standardized residuals against their leverage  
+  
+#### Leverage  
+* Points that are far from the center of data have a lot of leverage, simular to a weight on the end of a lever having more leverage than if it's near the fulcrum  
+
+
 ### Residuals and Diagnostics Part 2  
+* Calling a point an outlier is vague.  
+  + They can be the result of real or spurious processes.  
+    - If they real we don't want to just get rid of it  
+    - If they are spurious and their is evidence for this we can safely remove it from the model  
+* Outliers can conform to the regression relationship (being marginally outlying in X or Y, but not outlying given the regression relationship)  
+* There are various ways we can investigate outliers to ascertain how much influence they have.  
+* A list of default diagnostic measures can be obtained by executing `?incluence.measures`  
+  + `rstandard` - standardized residuals, (residuals divided by their standard deviations)  
+  + `rstudent` - standardized residuals, residuals divided by their standard deviations, where the ith data point was deleted in the calculation of the standard deviation for the residual to follow a t distribution  
+  + `hatvalues` - measures of leverage  
+    - Useful in finding data entry errors  
+  + `dffits` - change in the predicted response when the $i^{th}$ point is deleted in fitting the model. Helps measure for influence  
+  + `dfbetas` - change in individual coefficients when the $i^{th}$ point is deleted in fitting the model. Helps measure for influence  
+    - Returns a matrix of two values, slope & intercept  
+  + `cooks.distance` - overall change in the coefficients when the $i^{th}$ point is deleted.  
+    - In a sense, summarizes `dfbetas`  
+  + `resid` - returns the ordinary residuals  
+  + `resid(fit) / (1 - hatvalues(fit))` where `fit` is the linear model fit returns the PRESS residuals, i.e. the leave one out cross validation residuals - the difference in the response and the predicted response at data point $i$, where it was not included in the model fitting.  
+* One can not just set a residual threshold and exclude points outside of it as that is akin to P-hacking  
+  + However one can declare points outliers from the residual, utilizing `rstandard` or `rstudent`  
+  + Although, it is better to look at them with respect to the overall cloud of data rather than just setting strict thresholds  
+  
+* Linear algebra exploits are used such that the model doesn't have to be refit when using these models  
+
+
+
 ### Residuals and Diagnostics Part 3  
+#### Simulation 1  
+```{r}
+set.seed(1618033)
+n <- 100
+x <- c(10, rnorm(n))
+y <- c(10, rnorm(n))
+plot <- ggplot(data.frame(x = x, y = y), aes(x,y)) +
+  geom_point(size = 3, colour = "#000000") +
+  geom_point(size = 2, colour = "#5BC2E7")
+fit <- lm(y ~ x)
+plot + geom_abline(intercept = fit$coef[1], slope = fit$coef[2])
+```
+  
+* The point `(10,10)` has created a strong regression relationship where there shouldn't be one  
+```{r}
+explot <- ggplot(data.frame(x = x[-1], y = y[-1]), aes(x,y)) +
+  geom_point(size = 3, colour = "#000000") +
+  geom_point(size = 2, colour = "#5BC2E7") +
+  xlim(c(-4,10)) + ylim(c(-4,10))
+exfit <- lm(y[-1]~x[-1])
+explot + geom_abline(intercept = exfit$coef[1], slope = exfit$coef[2])
+```
+  
+Diagnostic values:   
+```{r}
+round(dfbetas(fit)[1:10,2], 3) #Slope dif.
+round(hatvalues(fit)[1:10], 3) #
+```
+  
+  + Notice the first point in both instances are larger than the rest, indicating the first point's influence  
+  
+#### Simulation 2  
+```{r}
+x <- rnorm(n)
+y <- x + rnorm(n, sd = 0.3)
+x <- c(5, x)
+y <- c(5, y)
+plot <- ggplot(data.frame(x = x, y = y), aes(x,y)) +
+  geom_point(size = 3, colour = "#000000") +
+  geom_point(size = 2, colour = "#5BC2E7")
+fit <- lm(y ~ x)
+plot + geom_abline(intercept = fit$coef[1], slope = fit$coef[2])
+```
+  
+* Here the outlier has a lot of leverage but adheres nicely to our model  
+Diagnostic values:   
+```{r}
+round(dfbetas(fit)[1:10,2], 3) #Slope dif.
+round(hatvalues(fit)[1:10], 3) #
+```
+  + Here the first value is still large but not as much as previous  
+  + The hatvalue is larger since its outside of the x valeus but still adheres to the realtionship  
+
+#### Using Residuals to See Underlying Patterns  
+```{r}
+dat <- read.table('http://www4.stat.ncsu.edu/~stefanski/NSF_Supported/Hidden_Images/orly_owl_files/orly_owl_Lin_4p_5_flat.txt', header = FALSE)
+pairs(dat) #Not much detail due to overplotting
+```
+```{r}
+#Looking at P-values  
+fit <- lm(V1 ~ . - 1, dat)
+summary(fit)$coef
+```
+  
+The fit shows that all the variables are significant, but we should still look at the residuals to see if there is an underlying pattern  
+```{r}
+plot(predict(fit), resid(fit), pch = '*')
+```
+  
+And by plotting the residuals we can see that although the data is significant there is an underlying pattern  
+
+
+
 ### Lesson with `swirl()`: Residuals Diagnostics and Variation  
+(No new content)
+
 **Reminder to commit (11) delete this line** ***AFTER*** **committing**  
 
 ## Model Selection  
+How do we chose what variables to include in a regression model?  
+* It depends, but that's what this section aims to look at  
+
 ### Model Selection Part 1  
+#### Multivariable Regression  
+* The next course is on prediction and machine learning, here we're focusing on modeling  
+  + Prediction has a different set of criteria, needs for interpretability are less  
+  + In modeling, out interest lies in parsimonious, as simple as possible but no simplier. Interpretable representations enhance our understanding of the phenomena beneath the data  
+  + "A model is a lense through which to look at your data" - Scott Zeger  
+    - Under this philosophy, what's the right model? Whatever model connects the data to a true, parsimonious statement about what you're studying  
+* There are nearly uncountable ways that a model can be wrong, this can be adjusted with varaible inclusion and exclusion  
+
+#### The Rumsfeldian Triplet  
+"*There are known knowns. These are things we know that we know. There are known unknowns. That is to say, there are things that we know we don't know. But there are also unknowns. There are things we don't know we don't know.*" -Donald Rumsfeld  
+In terms of regression:  
+* (Known knowns) Regressors that we know we should check to include in the model and we have.  
+* (Known Unknowns) Regressors that we would like to include in the model, but simply don't have.  
+* (Unknown Unknowns) Regressors that we don't even know about that we should have included in the model.  
+
+#### General Rules  
+* Omitting variables results in bias in the coefficients of interest - unless their regressors are uncorrelated with the omitted ones.  
+  + This is why we randomize treatments, it attempts to uncorrelate our treatment indicator with variables that we don't have access to to put in the model  
+  + (If there's too many unobserved confounding variables, even randomization won't help you.)  
+* Including variables that we shouldn't have increases standard errors of the regression variables  
+  + Including any new variables increases (actual, not estimated) standard errors of other regressors. So we don't want to idly throw variables into the model.  
+* The model must tend toward perfect fit as the number of non-redundant regressors approaches $n$  
+* $R^2$ increases monotonically as more regressors are included  
+* The mean square error decreases monotonically as more regressors are included  
+Below is a plot of $R^2$ versus $n$ where there is no true correlation underlying  
+```{r}
+set.seed(1618033)
+n <- 100
+plot(c(1, n), 0:1, type = "n", frame = FALSE, xlab = "p", ylab = "R^2")
+r <- sapply(1:n, function(p)
+      {
+        y <- rnorm(n); x <- matrix(rnorm(n * p), n, p)
+        summary(lm(y ~ x))$r.squared 
+      }
+    )
+lines(1:n, r, lwd = 2)
+abline(h = 1)
+```
+  
+As we can see it trends towards `1`, even though it's just noise being added  
+
 ### Model Selection Part 2  
+#### Variance Inflation  
+```{r}
+set.seed(1618033)
+n <- 100
+nosim <- 1000
+x1 <- rnorm(n); x2 <- rnorm(n); x3 <- rnorm(n); 
+betas <- sapply(1:nosim, function(i){
+  y <- x1 + rnorm(n, sd = .3)
+  ##Looking at variable for each added variable
+  c(coef(lm(y ~ x1))[2], 
+    coef(lm(y ~ x1 + x2))[2], 
+    coef(lm(y ~ x1 + x2 + x3))[2])
+})
+round(apply(betas, 1, sd), 5) #Look at sd of regression models
+```
+  
+* It can be seen that regardless of how many regressors we include the variance of the first coeficient does not increase  
+Let's look at a case where each varaible relies on `x1`  
+```{r}
+x1 <- rnorm(n)
+x2 <- x1/sqrt(2) + rnorm(n)/sqrt(2) #Slightly depends on x1
+x3 <- x1 * 0.95 + rnorm(n) * sqrt(1 - 0.95^2);  #Heavily depends on x1
+betas <- sapply(1:nosim, function(i){
+  y <- x1 + rnorm(n, sd = .3)
+  c(coef(lm(y ~ x1))[2], 
+    coef(lm(y ~ x1 + x2))[2], 
+    coef(lm(y ~ x1 + x2 + x3))[2])
+})
+round(apply(betas, 1, sd), 5)
+```
+  
+* Here we can see an increase in the variance of the coefficients as we include more variables that are all dependent on x1  
+  + If the variable you include is highly correlated to what you're investigating you'll get a higher standard error  
+    - If you can avoid it that's ideal but if you have to map both variables (such as height and weight) you'll get this drawback of a higher standard error  
+    
+#### Variance Inflation Factors  
+* Notice variance inflation was much worse when we included a variable that was highly related to `x1`.  
+* We don't know $\sigma$, so we can only estimate the increase int he actual standard error of the coefficients for including a regressor  
+* However, $\sigma$ drops out of the relative standard erorr, If one sequentially adds variables, one cna check the variance inflation for including each one.  
+* When the other regressors are actually orthogonal to the regressor of interest, then there is no variance inflation  
+* The **variance inflation factor (VIF)** is the increase in the variance for the $i^{th}$ regressor compared to the ideal setting where it is orthogonal to the other regressors  
+  + $\sqrt{VIF}$ = the increase in the sd  
+* Remember that variance inflation is only part of the picture. We want to include certain variables, even if they dramatically inflate our variance.  
+
+#### Variance Inflation with Swiss Data  
+```{r message = FALSE}
+library(car)#Companion to Applied Regression
+data(swiss)
+```
+```{r}
+fit <- lm(Fertility ~ ., swiss)
+res <- data.frame(rbind(vif(fit), sqrt(vif(fit))))
+rownames(res) <- c("Variance", "SD")
+res
+```
+  
+* `[1,1]` indicates that the Standard Error (SSE) of the Agriculture is double than what it would be if it were orthoginal to all the other regressors  
+* Infant.Mortality is low because it likely is already orthoginal to the other factors  
+
+
 ### Model Selection Part 3  
+#### What About Residual Variance Estimation?  
+* Assuming that the model is linear with additive iid errors (with finite variance), we can mathematically describe the impact of omitting necessary varaibles or including unnecessary ones.  
+  + If we underfit the model, the variance estimate is biased due to that missing factor  
+  + If we correctly or overfit the model, including all necessary covariates and/or unnecessary covariates, the variance estiamte is unbiased  
+    - However, the variance of the variance is larger if we include unnecessary variables  
+* Principal componetns or factor analytic models on covariates are often udeful for reducing complex covariate spaces.  
+* Good design can often eliminate the need for complex model searches at analyses; though often contorl over the design is limited.  
+* If the models of interest are nested and without lots of parameters differentiating them, it's fairly uncontroversial to use nested likelihood ratio tests.  
+
+#### Nested Model Testing  
+```{r}
+fit1 <- lm(Fertility ~ Agriculture, swiss)
+fit3 <- update(fit, Fertility ~ Agriculture + Examination + Education)
+fit5 <- update(fit, Fertility ~ Agriculture + Examination + Education + Catholic + Infant.Mortality)
+##Once can use ANOVA to perform an ANalyis Of the VAriance
+anova(fit1, fit3, fit5)
+```
+  
+  + `Res.Df` - Number of Observations $-$ Number of Parameters  
+  + `RSS` - Residual Sum of Squares  
+  + `Sum of Sq` - How many addtional Df were added from previous model  
+  + `F` - F-statistic  
+  + `P...` - If significant it implies that the additional inclusion appears to be nessecary  
+
 **Reminder to commit (12) delete this line** ***AFTER*** **committing**  
 
 ## Practice Exercise in Regression Modeling  
