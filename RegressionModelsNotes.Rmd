@@ -1156,8 +1156,8 @@ $Y_i = \beta_0 + X_{i1}\beta_i + \epsilon_i$
 
 #### Example in R with InsectSprays  
 ```{r}
-data(InsectSprays)
-mus <- InsectSprays %>% group_by(spray) %>% summarize(mean = mean(count))
+data(InsectSprays); library(tidyverse)
+mus <- InsectSprays %>% group_by(spray) %>% summarise(mean = mean(count))
 dat <- merge(InsectSprays, mus, by = "spray")
 plot <- ggplot(dat, aes(spray, count, fill = spray)) +
   geom_violin(colour = "#000000", size = 1) +
@@ -1308,12 +1308,174 @@ plot + geom_abline(intercept = coef(interactfit)[1],
 
 ### Lesson with `swirl()`: MultiVar Examples3  
 This lesson looks at WHO data on hunger but essentially analyzes it the same as the `swiss` dataset.  
-
-
-**Reminder to commit (09) delete this line** ***AFTER*** **committing**  
-
+  
 ## Adjustment  
 ### Adjustment Examples  
+#### Simulation 1  
+```{r}
+set.seed(1618033)
+n <- 100
+t <- rep(c(0,1), each = n/2)
+x <- c(runif(n/2), runif(n/2))
+beta0 <- 0
+beta1 <- 2
+tau <- 1
+sigma <- 0.2
+y <- beta0 + x * beta1 + t * tau + 
+  rnorm(n, sd = sigma) #For noise
+plot <- ggplot(data.frame(x = x, y = y, section = factor(t)), 
+               aes(x,y, colour = section)) +
+  scale_colour_manual(values = pal) +
+  geom_point(size = 3, colour = "#000000") +
+  geom_point(size = 2)
+plot
+```
+```{r}
+#Fiting a model to the points
+xfit <- lm(y ~ x)
+xtfit <- lm(y ~ x + t)
+plot + geom_abline(intercept = xfit$coef[1], slope = xfit$coef[2], 
+                   colour = "#000000", lwd = 2) + # All points, no t
+  #With resepect to t 
+  geom_abline(intercept = xtfit$coef[1], slope = xtfit$coef[2], 
+              colour = pal[1], lwd = 2) +
+  geom_abline(intercept = xtfit$coef[1] + xtfit$coef[3], slope = xtfit$coef[2], 
+              colour = pal[2], lwd = 2) 
+  
+```
+  
+* The difference in the coloured and black lines is `r round(abs(xfit$coef[2] - xtfit$coef[2]), 4)` d
+* Some things to note about this simulation  
+  + The X cariable is unrelated to group status, t  
+  + The X variable is related to Y, but the intercept depends on group status  
+  + The group variable is related to Y  
+    - The relationship between group status and Y is constant depending on X  
+    - The relationship between group and Y disregarding X is about the same as holding X constant  
+
+#### Simulation 2  
+```{r}
+x <- c(runif(n/2), 1.5 + runif(n/2))
+tau <- 0
+y <- beta0 + x * beta1 + t * tau + rnorm(n, sd = sigma)
+plot <- ggplot(data.frame(x = x, y = y, section = factor(t)), 
+               aes(x,y, colour = section)) +
+  scale_colour_manual(values = pal) +
+  geom_point(size = 3, colour = "#000000") +
+  geom_point(size = 2)
+plot
+```
+```{r}
+xfit <- lm(y ~ x)
+xtfit <- lm(y ~ x + t)
+plot + geom_abline(intercept = xfit$coef[1], slope = xfit$coef[2])
+plot +
+  geom_abline(intercept = xtfit$coef[1], slope = xtfit$coef[2], 
+              colour = pal[1]) +
+  geom_abline(intercept = xtfit$coef[1] + xtfit$coef[3],
+              slope = xtfit$coef[2], colour = pal[2])
+```
+```{r}
+xfit$coefficients
+xtfit$coefficients
+```
+  
+* These lines look nearly the same with only a slightly different intercept. However, the X variable is highly related to group status, below 1 is section `0` and above 1.5 is section `1`.  
+* The X variable is realted to Y, and the intercept does not depend on the group varaible  
+  + The X variable remains related to Y holding group status constant  
+* The group variable is marginally related to Y disregarding X  
+* The model would estimate no adjusted effect due to group.  
+  + There isn't any data to inform the relationship between group and Y.  
+  + This conclusion is entirely based on the model  
+* This sort of model may occur if the x-variable is something related to being in the given section.  
+
+#### Simulation 3  
+```{r}
+x <- c(runif(n/2), 0.9 + runif(n/2))
+tau <- -1
+y <- beta0 + x * beta1 + t * tau + rnorm(n, sd = sigma)
+plot <- ggplot(data.frame(x = x, y = y, section = factor(t)), 
+               aes(x,y, colour = section)) +
+  scale_colour_manual(values = pal) +
+  geom_point(size = 3, colour = "#000000") +
+  geom_point(size = 2)
+plot
+```
+```{r}
+##Fitting a model
+xfit <- lm(y ~ x)
+xtfit <- lm(y ~ x + t)
+plot + geom_abline(intercept = xfit$coef[1], slope = xfit$coef[2]) +
+  geom_abline(intercept = xtfit$coef[1], slope = xtfit$coef[2], 
+              colour = pal[1]) +
+  geom_abline(intercept = xtfit$coef[1] + xtfit$coef[3],
+              slope = xtfit$coef[2], colour = pal[2])
+```
+  
+* Here we can see subsetting by group gives a clearly diffrent slope and still has some shared x values between groups. They also have diffrent intercepts  
+* This is an example of Simpson's "paradox"  
+
+#### Simulation 4  
+```{r}
+x <- c(0.5 + runif(n/2), runif(n/2))
+tau <- 1
+y <- beta0 + x * beta1 + t * tau + rnorm(n, sd = sigma)
+plot <- ggplot(data.frame(x = x, y = y, section = factor(t)), 
+               aes(x,y, colour = section)) +
+  scale_colour_manual(values = pal) +
+  geom_point(size = 3, colour = "#000000") +
+  geom_point(size = 2)
+plot
+```
+```{r}
+##Fitting a model
+xfit <- lm(y ~ x)
+xtfit <- lm(y ~ x + t)
+plot + geom_abline(intercept = xfit$coef[1], slope = xfit$coef[2]) +
+  geom_abline(intercept = xtfit$coef[1], slope = xtfit$coef[2], 
+              colour = pal[1]) +
+  geom_abline(intercept = xtfit$coef[1] + xtfit$coef[3],
+              slope = xtfit$coef[2], colour = pal[2])
+```
+  
+* In this example there is a large affect when adjusted for x, however the marginal affect is not great with mean(section==0) = `r round(mean(y[1:(n/2 - 1)]), 4)` and mean(section==1) = `r round(mean(y[n/2:n]), 4)`. Group status is not realted to X much with all the overlap.  
+
+#### Simulation 5  
+```{r}
+x <- c(runif(n/2, -1, 1), runif(n/2, -1, 1))
+tau <- 0
+tau1 <- -4
+y <- beta0 + x * beta1 + t * tau + t * x * tau1 + rnorm(n, sd = sigma)
+plot <- ggplot(data.frame(x = x, y = y, section = factor(t)), 
+               aes(x,y, colour = section)) +
+  scale_colour_manual(values = pal) +
+  geom_point(size = 3, colour = "#000000") +
+  geom_point(size = 2)
+plot
+```
+```{r}
+##Fitting a model
+xfit <- lm(y ~ x)
+xtfit <- lm(y ~ x + t + I(x * t))
+plot + geom_abline(intercept = xfit$coef[1], slope = xfit$coef[2]) +
+  geom_abline(intercept = xtfit$coef[1], slope = xtfit$coef[2], 
+              colour = pal[1]) +
+  geom_abline(intercept = xtfit$coef[1] + xtfit$coef[3],
+              slope = xtfit$coef[2] + xtfit$coef[4], 
+              colour = pal[2])
+```
+```{r}
+c(mean(y[1:(n/2 - 1)]), mean(y[n/2:n]))
+```
+  
+* Here the marginal difference is quite small, however looking at the trend by group shows that section `1` has a decrease in Y as X increases. However the intercept is quite high. As such one couldn't advise for a treatment if an individual had a low x.  
+
+#### Some final thoughts  
+* Modeling multivariate relationships is difficult  
+* Play around with simulations to see how the inclusion or exclusion of another variable can change analyses  
+* The results of these analyses deal witht eh impact of variables on associations  
+  + Ascertaining mechanisms or cause are difficult subjects to be added on top of difficulty in understanding multivariate associations  
+  
+
 **Reminder to commit (10) delete this line** ***AFTER*** **committing**  
 
 ## Residuals Again  
