@@ -1608,7 +1608,6 @@ And by plotting the residuals we can see that although the data is significant t
 ### Lesson with `swirl()`: Residuals Diagnostics and Variation  
 (No new content)
 
-**Reminder to commit (11) delete this line** ***AFTER*** **committing**  
 
 ## Model Selection  
 How do we chose what variables to include in a regression model?  
@@ -1742,11 +1741,76 @@ anova(fit1, fit3, fit5)
   + `F` - F-statistic  
   + `P...` - If significant it implies that the additional inclusion appears to be nessecary  
 
-**Reminder to commit (12) delete this line** ***AFTER*** **committing**  
 
 ## Practice Exercise in Regression Modeling  
+**[My practice exercise can be found on GitHub](https://github.com/PhiPrime/CollegeIncome)**  
 
 ## Quiz 3  
+1. Consider the mtcars data set. Fit a model with mpg as the outcome that includes number of cylinders as a factor variable and weight as confounder. Give the adjusted estimate for the expected change in mpg comparing 8 cylinders to 4.  
+
+```{r}
+data(mtcars)
+fit <- lm(mpg ~ factor(cyl) + wt, mtcars)
+summary(fit)$coef
+```
+  
+* `r round(summary(fit)$coef[3], 3)`
+
+2. Consider the mtcars data set. Fit a model with mpg as the outcome that includes number of cylinders as a factor variable and weight as a possible confounding variable. Compare the effect of 8 versus 4 cylinders on mpg for the adjusted and unadjusted by weight models. Here, adjusted means including the weight variable as a term in the regression model and unadjusted means the model without weight included. What can be said about the effect comparing 8 and 4 cylinders after looking at models with and without weight included?  
+
+```{r}
+cylfit <- lm(mpg ~ factor(cyl), mtcars)
+summary(fit)$coef
+summary(cylfit)$coef
+```
+
+3. Consider the mtcars data set. Fit a model with mpg as the outcome that considers number of cylinders as a factor variable and weight as confounder. Now fit a second model with mpg as the outcome model that considers the interaction between number of cylinders (as a factor variable) and weight. Give the P-value for the likelihood ratio test comparing the two models and suggest a model using 0.05 as a type I error rate significance benchmark.  
+
+```{r}
+intfit <- lm(mpg ~ factor(cyl) * wt, mtcars)
+summary(fit)$coef
+summary(intfit)$coef
+anova(fit, intfit)
+```
+
+4. Consider the mtcars\verb|mtcars|mtcars data set. Fit a model with mpg as the outcome that includes number of cylinders as a factor variable and weight inlcuded in the model as:  
+
+```{r}
+weightedfit <- lm(mpg ~ I(wt * 0.5) + factor(cyl), mtcars)
+```
+How is the wt coefficient interpretted?
+
+```{r}
+summary(weightedfit)$coef
+```
+
+* Change in mpg per 1 ton increase in weight while holding cyl constant (Since wt is originally in 1000 lbs)  
+
+5. Given:  
+```{r}
+x <- c(0.586, 0.166, -0.042, -0.614, 11.72)
+y <- c(0.549, -0.026, -0.127, -0.751, 1.344)
+```
+  
+Give the hat diagonal for the most influential point  
+
+```{r}
+fit <- lm(y ~ x)
+hatvalues(fit)
+```
+
+6. With the same dataset as question 5, give the slope dfbeta for the point with the highest hat value.  
+
+```{r}
+dfbetas(fit)
+```
+
+7. Consider a regression relationship between Y and X with and without adjustment for a third variable Z. Which of the following is true about comparing the regression coefficient between Y and X with and without adjustment for Z.
+
+* It is possible to have a scenerio of Simpson's paradox where the coefficient can be positive and strongly significant before adjusting for Z, then negative and strongly significant after the adjustment.  
+
+
+
 **Reminder to commit (S3) delete this line** ***AFTER*** **committing**  
 
 # Logistic Regression and Poisson Regression  
