@@ -40,7 +40,6 @@ Further Reading: **[Advanced Linear Models for Data Science](https://leanpub.com
   
 In addition, Johns Hopkins has **[a site on Statistical Methods and Applications for Research in Technology](http://www.smart-stats.org/)** that Dr. Caffo helps manage.  
 
-**Reminder to commit (01) delete this line** ***AFTER*** **committing**  
 
 # Least Squares and Linear Regression  
 ## Regression  
@@ -300,8 +299,7 @@ plot + geom_smooth(method = "lm", formula = y ~ x)
 
 ### Lesson with `swirl()`: Least Squares Estimation  
 (No new content)
-
-**Reminder to commit (03) delete this line** ***AFTER*** **committing**  
+ 
 
 ## Regression to the Mean  
 ### Regression to the Mean  
@@ -538,7 +536,6 @@ plot + geom_smooth(method = "lm", colour = "#000000", formula = y ~ x) +
 
 
 
-**Reminder to commit (05) delete this line** ***AFTER*** **committing**  
 
 ## Residuals  
 ### Residuals  
@@ -1809,18 +1806,250 @@ dfbetas(fit)
 
 * It is possible to have a scenerio of Simpson's paradox where the coefficient can be positive and strongly significant before adjusting for Z, then negative and strongly significant after the adjustment.  
 
-
-
-**Reminder to commit (S3) delete this line** ***AFTER*** **committing**  
-
 # Logistic Regression and Poisson Regression  
 ## GLMs  
+### Intro  
+* Generalized linear models (GLMs) framework came from **[Nelder and Wedderburn in 1972](https://www.jstor.org/stable/2344614?seq=1)** in the Journal of the Royal Statistical Society.  
+* GLM is a family of models that includes linear models.  
+  + Extending the family handles many of the issues with linear models, but at the expense of some complexity and loss of some of the mathematical "tidiness"  
+* A GLM involves three componets  
+  + An *exponential family* model for the response  
+  + A systematic component via a linear predictor  
+  + A link function that connects the means of the response to the linear predictor  
+* The three most famous cases of GLMs are:  
+  + Linear models  
+  + Binomial and binary regression  
+  + Poisson regression  
+
+### limitations of Linear Models  
+* Additive response models don't make much sense if the response is discrete, or strictly positive.  
+* Additive error models often don't make sense, for example if the outcome has to be positive.  
+* Transformations are often hard to interpret  
+  + There's value in modeling the data on the scale that it was collected.  
+  + Particularly interpetable transformations, natural logarithms in specific, aren't applicable for negative or zero values.  
+  
+### Example, Linear Models  
+* Assume that $Y_i \sim N(\mu_i, \sigma^2)$ (the Gaussian distribution is an exponential family distribution.)  
+* Define the linear predictor to be $\eta_i = \sum_{k=1}^pX_{ik}\beta_k$.  
+* The link function, $g$, is defined such that $g(\mu) = \eta$.  
+  + For linear models $g(\mu) = \mu$ as such $\mu_i = \eta_i$  
+* The difference here is that we state $Y_i$ is normally distributed as opposed to saying the error is normally distributed. We then connect the mean to the linear predictor.  
+  + The reasoning for this will be more clear when we look at different settings  
+  
+### Example, Logistic Regression  
+* Assume that $Y_i \sim Bernoulli(\mu_i)$ (Binomial) such that $E[Y_i] = \mu_i$ where $0 \leq \mu_i \leq 1$.  
+* Linear predictor $\eta_i = \sum_{k=1}^pX_{ik}\beta_k$  
+* Link function $g(\mu) = \eta = log(\frac{\mu}{1-\mu})$  
+  + $g$ is the (natural) log odds, referred to as the **logit**  
+    - $log$ is assumed to be base $e$  
+* The parameter estimates are obtained by maximizing the following liklihood function:  
+$\prod_{i=1}^n\mu_i^{y_i}(1-\mu_i)^{1-y_i}=\exp(\sum_{i=1}^ny_i\eta_i)\prod_{i=1}^n(1+\eta_i)^{-1}$  
+
+### Example, Poisson Regression  
+* Assume that $Y_i \sim Poisson(\mu_i)$ such that $E[Y_i] = \mu_i$ where $0 \leq \mu_i$  
+* Linear predictor (is still) $\eta_i = \sum_{k=1}^pX_{ik}\beta_k$  
+* Link function $g(\mu) = \eta = log(\mu)$  
+
+### Some Things to Note  
+* In each case, the only way in which the likelihood depends on the data is through:  
+$\sum_{i=1}^ny_i\eta_i = \sum_{i=1}^ny_i \times \sum_{k=1}^pX_{ik}\beta_k=\sum_{k=1}^p\beta_k \times \sum_{i=1}^nX_{ik}y_i$  
+* Thus if we don't need the full data, only $\sum_{i=1}^n X_{ik} y_i$.
+  + This simplification is a consequence of chosing so-called "canonical" link functions  
+* All models achieve their maximum likelihood at the root of the so called normal equations  
+$0 = \sum_{i=1}^n \frac{(Y_i - \mu_i)}{Var(Y_i)}W_i$  
+  + Where $W_i$ are the derivative of the inverse of the link fucntion.  
+  
+### About Variances  
+* For the linear model $Var(Y_i) = \sigma^2$ is constant.  
+* For the Bernoulli model $Var(Y_i) = \mu_i(1-\mu_i)$  
+  + As such the variance depends on which observation you're looking at  
+* For the Poisson model $Var(Y_i)=\mu_i$  
+  + This variance also depends on the observation you're looking at  
+* There are `quasi-` versions of the non-constant functions that can be used when the data doesn't follow the variance assumtions of the GLMs.  
+
+### Odds & Ends  
+* The normal equations ahve to be solved iteratively. Resulting in $\hat \beta_k$ and, if included, $\hat \phi$.  
+* Preddicted linear predictor responses can be obtained as $\hat \eta = \sum_{k=1}^p X_k \hat \beta_k$  
+* Predicted mean responses as $\hat \mu = g^{-1}(\hat \eta)$  
+* Coefficients are interpretted as  
+$g(E[Y | X_k = x_k +1, X_{\sim k} = x_{\sim k}]) - g(E[Y | X_k = x_k, X_{\sim k}=x_{\sim k}]) = \beta_k$  
+* This is interpreted as the change in the link function of the expected response per unit change in $X_k$ holding other regressors constant.  
+  + Variations on Newon/Raphson's algorithm are used to do it.  
+  + Asyptotics are used for inference usually, which means they require larger sample sizes for the P-values to be informative.  
+  + Many of the ideas from linear models can be brought over to GLMs  
+
+  
+
+
+
 ## Logistic Regression  
+* This section coverers logistic regression for binary outcomes  
+
 ### Logistic Regression Part 1  
+#### Key Ideas  
+* Frequently we care about outcomes that ahve two values  
+  + Alive/Dead  
+  + Win/loss  
+  + Success/Failure  
+  + etc.  
+* Called binary, Bernoulli or 0/1 outcomes  
+* Collection of exchangeable binary outcomes for the same covariate data are called binomial outcomes.  
+
+#### Example Baltimore Ravens win/loss  
+```{r}
+url <- "https://github.com/bcaffo/courses/raw/master/07_RegressionModels/03_02_binaryOutcomes/data/ravensData.rda"
+loc <- "./data/ravensData.rda"
+download.file(url, destfile = loc)
+load(loc)
+head(ravensData)
+```
+  
+* This data contains a 1/0 for W/L which are the first two columns.  
+* The other two columns are the Raven's score and their opponent's score for the game  
+
+##### Linear Regression  
+$RW_i = b_0 + b_1RS_i + e_i$  
+* $RW_i$ - 1 fi a Ravens win, 0 if not  
+* $RS_i$ - Number of points Ravens scored  
+* $b_0$ - probability of a Ravens win if they score 0 points  
+* $b_1$ - increase in probability of a Ravens win for each additional point  
+* $e_i$ - residual varaition  
+
+```{r}
+lmRavens <- lm(ravensData$ravenWinNum ~ ravensData$ravenScore)
+res <- summary(lmRavens)$coef
+res
+res[1,]
+```
+  
+* From this model we can acertain:  
+  + $b_0$ = `r round(res[1,1], 4)`  
+  + $b_1$ = `r round(res[2,1], 4)`  
+  
+#### Odds  
+* Binary Outcome $0/1$  
+$RW_i$  
+* Probability $(0,1)$  
+$Pr(RW_i|RS_i,b_0,b_1) = \\$  
+$p$  
+* Odds $(0, \infty)$  
+$\frac{Pr(RW_i|RS_i,b_0,b_1)}{1-Pr(RW_i|RS_i,b_0,b_1)} = \\$  
+$\frac{p}{1-p}$  
+  + Probability can be derived from the odds: $p = \frac{O}{1+O}$  
+* Log odds $(-\infty, \infty)$ (**logit**)  
+$\log(\frac{Pr(RW_i|RS_i,b_0,b_1)}{1-Pr(RW_i|RS_i,b_0,b_1)}) = \\$  
+$\log(\frac{p}{1-p})$  
+  
+#### Linear vs. Logistic Regression  
+* Linear definitions  
+  + $RW_i=b_0+b_1RS_i+e_i$  
+  + $E[RW_i|RS_i,b_0,b_1]=b_0+b_1RS_i$  
+* Logistic definitions  
+  + $Pr(RW_i|RS_i,b_0,b_1)=\frac{exp(b_0+b_1RS_i)}{1+exp(b_0+b_1RS_i)}$  
+  + $\log(\frac{Pr(RW_i|RS_i,b_0,b_1)}{1-Pr(RW_i|RS_i,b_0,b_1)}) = b_0 + b_1RS_i$  
+  
+#### Interpreting Logistic Regression  
+$\log(\frac{Pr(RW_i|RS_i,b_0,b_1)}{1-Pr(RW_i|RS_i,b_0,b_1)}) = b_0 + b_1RS_i$  
+* $b_0$ - Log odds of a Ravens win if they score 0 points  
+* $b_1$ - Log odds ratio of win probability for each point scored (compared to zero points)  
+* $\exp(b_1)$ - Odds ratio of win probability for each point scored (compared to zero points)  
+
+#### Odds  
+* Imagine that you are playing a game where you have a probability of success of $p$ (Perhaps drawing cards or something).  
+* If you win you gain $X$ dollars, if you lose you lose $Y$ dollars.  
+* What should we set $X$ and $Y$ for the game to be fair?  
+$E[earnings] = Xp - Y(1-p) = 0$
+* Which implies...  
+$Xp = Y(1-p)\\\frac{Xp}{1-p} = Y\\\frac{p}{1-p}=\frac{Y}{X}$  
+* The odds can be said as "How much should you be willing to pay for a $p$ probability of winning a dollar?"  
+  + If $p > 0.5$ you have to pay more if you lose than you get if you win.  
+  + If $p < 0.5$ you have to pay less if you lose than you get if you win.  
+  
 ### Logistic Regression Part 2  
+#### Visualizing Fitting Logistic Regression Curves  
+```{r eval = FALSE}
+set.seed(1618033)
+library(manipulate)
+x <- seq(-10, 10, length = 1000)
+## manipulate can only be executed in an R Studio session
+manipulate(
+  plot(x, exp(beta0 + beta1 * x) / (1 + exp(beta0 + beta1 * x)),
+       type = "l", lwd = 3, frame = FALSE),
+  beta1 = slider(-2, 2, step = 0.1, initial = 2),
+  beta0 = slider(-2, 2, step = 0.1, initial = 0)
+  )
+```
+  
+* This is a unit step function with a large enough `beta1`  
+  + `beta1` adjusts the steepness and direction of the slope  
+  + `beta0` determines at what x value the function changes from 0 to 1 (or 1 to 0 if `beta1` is negative)  
+* This model is: $\frac{e^{\beta_0+\beta_1x}}{1+e^{\beta_0+\beta_1x}}$  
+
+
 ### Logistic Regression Part 3  
+#### Ravens Logistic Regression  
+```{r}
+#If we had bounded count data we'd have to give a sample size
+# Assumes you want the logistic link function, which we do in this case
+logRegRavens <- glm(ravensData$ravenWinNum ~ ravensData$ravenScore, 
+                    family = "binomial")
+summary(logRegRavens)
+```
+  
+* Fitted Values  
+```{r}
+plot(ravensData$ravenScore, logRegRavens$fitted, 
+     pch = 19, xlab = "Score", ylab = "Prob Ravens Win")
+```
+  
+* These fitted values are only showing part of the curve since no data existed with a low enough score (i.e. 0)  
+
+#### Odds Ratios & Confidence Intervals  
+```{r}
+#Suggests a [1,2] increase in p(winning) for each point scored
+exp(logRegRavens$coeff)
+#Looking on expenetial scale  
+exp(confint(logRegRavens))
+```
+
+#### ANOVA for Logistic Regression  
+```{r}
+#Additional models could be added, or factor variables could be considered
+anova(logRegRavens, test = "Chisq")
+```
+  
+#### Interpreting Odds Ratios  
+* Not probabilities  
+* Odds ratio of 1 = no difference in odds  
+* Log odds ratio of 0 = no difference in odds  
+* Odds ratio < 0.5 or > 2 is commonly refered to as a "moderate effect"  
+  + Depends ont he context  
+* Relative risk, $\frac{Pr(RW_i|RS_i = 10)}{Pr(RW_i|RS_i=0)}$, is often easier to interpret, but harder to estimate. It is just the ratio of two probabilities.  
+* For small probabilities Relative Risk $\approx$ Odds Ratio but **they are not the same!**  
+
+#### Further Resources  
+* **[Wikipedia on Logistic Regression](http://en.wikipedia.org/wiki/Logistic_regression)**  
+* **[Logistic regression and glms in R](http://data.princeton.edu/R/glms.html)**  
+PDFs:  
+* Brian Caffo's lecture notes on: **[Simpson's paradox](http://ocw.jhsph.edu/courses/MethodsInBiostatisticsII/PDFs/lecture23.pdf)**, **[Case-control studies](http://ocw.jhsph.edu/courses/MethodsInBiostatisticsII/PDFs/lecture24.pdf)**  
+* **[Open Intro Chapter on Logistic Regression](http://www.openintro.org/stat/down/oiStat2_08.pdf)**
+
+
+
 ### Lesson with `swirl()`: Variance Inflation Factors  
+* Variance Inflation is when you include any new variables to a model, it will increase the standard errors of the other regressors  
+* This lesson looks at `vifSims.R`, which is has some simulations of this in effect  
+  + `rgp1()` has constant variance since each variable is uncorrelated  
+  + `rgp2()` has diffrent variances since `x2` & `x3` are correlated with `x1` * This lesson also looks at the `swiss` data set again, which was previously covered.  
+  
+  
+
 ### Lesson with `swirl()`: Overfitting and Underfitting  
+* This lesson has largely already been covered, however it does use `fitting.R` to simulate fitting diffrent models  
+* The `shapiro.test()` function will test a parameter for normality, with a null-hypothesis that it is normally distributed  
+  + This can be used to test residuals, if they aren't normally distributed it suggest there may be an underlying pattern  
+
+
 **Reminder to commit (13) delete this line** ***AFTER*** **committing**  
 
 ## Poisson Regression  
