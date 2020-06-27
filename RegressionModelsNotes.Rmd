@@ -2049,14 +2049,171 @@ PDFs:
 * The `shapiro.test()` function will test a parameter for normality, with a null-hypothesis that it is normally distributed  
   + This can be used to test residuals, if they aren't normally distributed it suggest there may be an underlying pattern  
 
-
-**Reminder to commit (13) delete this line** ***AFTER*** **committing**  
+### Lesson with `swirl()`: Binary Outcomes  
+(No additional content)  
 
 ## Poisson Regression  
 ### Poisson Regression Part 1  
+#### Overview  
+* Many data take the form of unbounded count data, for example:  
+  + Number of calls to a call center  
+  + Number of flu cases ina n area  
+  + Number of hits to a web site  
+* Data may also be in the form of rates  
+  + Percent of children passing a test  
+  + Percent of hits to a website from a country  
+  + Pump failure per a unit of time  
+* In some cases the counts are clearly bounded. However, modeling the counts as unbounded is often done when the upper limit is not known or very large relative to the number of events.  
+* The starting point for most count analysis is the Poisson distribution  
+
+#### Poisson Distribution  
+* The Poisson distribution is a useful model for counts and rates  
+* Here a rate is count per some monitoring time  
+* Some examples:  
+  + Modeling web traffic hits  
+  + Incidence rates (Number of new cases per person time at risk)  
+  + Approximating binomial probabilities with small $p$ and large $n$  
+  + Analyzing contigency table data  
+
+##### The Poisson Mass Function  
+* $X \sim Poisson(t\lambda)$ if  
+$P(X = x)=\frac{(t\lambda)^xe^{-t\lambda}}{x!}$  
+  + For $x = 0, 1, ...$  
+* The mean of the Poisson is $E[X] = t\lambda$, thus $E[X/t]=\lambda$  
+* The variance of the Poisson is $Var(X) = t\lambda$.  
+  + This is an assumption that we can check  
+* The Poisson tends to a normal as $t\lambda$ gets large.  
+
+##### Simulation  
+* Simulate three sizes of poisson data and see that as the sample size grows it starts to appear normal  
+```{r}
+par(mfrow = c(1, 3))
+set.seed(1618033)
+plot(0:10, dpois(0:10, lambda = 2), type = "h", frame = FALSE)
+plot(0:20, dpois(0:20, lambda = 10), type = "h", frame = FALSE)
+plot(0:200, dpois(0:200, lambda = 100), type = "h", frame = FALSE)
+```
+
+#### Example: Leek Group Website Traffic  
+* Consider the daily counts to **[Jeff Leek's web site]()**  
+* Since the unit of time is always one day, we set $t = 1$ and then the Poisson mean is interpretted as web hits per day.  
+  + If we set $t = 24$, it would be web hits per hour.  
+```{r}
+download.file("https://github.com/bcaffo/courses/raw/master/07_RegressionModels/03_03_countOutcomes/data/gaData.rda",
+              destfile= "./data/gaData.rda")
+load("./data/gaData.rda")
+#Change char date to numeric julian date format
+gaData$julian <- julian(gaData$date)
+head(gaData)
+```
+  
+```{r}
+plot(gaData$julian, gaData$visits, pch = 19, col = rgb(0,0,0,0.5), 
+     xlab = "Julian Date", ylab = "Visits")
+```
+  
+* Since this is count data a linear model won't be perfect at modeling it, even though it will trend to normality.  
+```{r}
+plot(gaData$julian, gaData$visits, pch = 19, col = rgb(0,0,0,0.5), 
+     xlab = "Julian Date", ylab = "Visits")
+lm1 <- lm(gaData$visits ~ gaData$julian)
+abline(lm1, col = "#FF0000", lwd = 3)
+```
+
+##### Natural Log    
+* Taking the natural log of the outcome has a specific interpretation, consider the model:  
+$log(NH_i)=b_0 + b_1JD_i + e_i$  
+  + $NH_i$ - number of hits to the website  
+  + $JD_i$ - day fo the year (Julian day)  
+  + $b_0$ - log number of hits on Julian day 0 (1970-01-01)  
+  + $b_1$ - increase in log number of hits per unit day  
+  + $e_i$ - variation due to everything we didn't measure  
+
+##### Exponentiating Coefficients  
+* $e^{E[\log(Y)]}$ geometric mean of $Y$.  
+  + With no covariates, this is estimated by $e^{\frac{1}{n}\sum_{i=1}^n \log(y_i)} = (\prod_{i=1}^n y_i)^{1/n}$  
+* When you take the natural log fo outcomes and fit a regression model, you exponentiated coefficients estimate things about geometric means.  
+  + $e^{\beta_0}$ estimated geometric mean hits on day 0  
+  + $e^{\beta_1}$ estimated relative increase or decrease in geometric "successes" per day  
+* There's an error from $log$ if you have values of zero, adding a constant is a work-around for this  
+```{r}
+res <- round(exp(coef(lm(
+              I(log(gaData$visits + 1)) ~ gaData$julian))), 5)
+res
+```
+  
+* Since this is on the log scale you would subtract 1 from the suggested slope to get the percent increase per day, in this case it would be `r round((res[2]-1)*100, 2)`% increase in hits per day.  
+
+
 ### Poisson Regression Part 2  
-### Lesson with `swirl()`: Binary Outcomes  
+#### Linear vs. Poisson Regression  
+* Linear  
+  + $y_i = b_0 + b_1x_i + e_i$  
+  + Also stated as: $E[y_i|x_i,b_0,b_1]=b_0+b_1JD_i$  
+* Poisson/log-linear  
+  + $log(E[y_i|x_i,b_0,b_1])=b_0+b_1x_i$  
+    - $log$ of expected is linear  
+  + revaluating this we get: $E[y_i|x_i,b_0,b_1] = \exp(b_0+b_1JD_i)$  
+  + If $x_i$ is increased by one unit, $E[y_i|x_i,b_0,b_1]$ is *multiplied* by $\exp(b_1)$  
+  
+#### Poisson Regression in R  
+```{r}
+plot(gaData$julian, gaData$visits, 
+     pch = 19, col = rgb(0,0,0,0.5), xlab = "Julian", ylab = "Visits")
+glm1 <- glm(gaData$visits ~ gaData$julian, family = "poisson")
+abline(lm1, col = "#FF0000", lwd = 3)
+lines(gaData$julian, glm1$fitted, col = "#5BC2E7", lwd = 3)
+```
+  
+* As you can see here the poisson model does a better job at modeling the earlier slow rise of hits (~15200 - ~15600) and the later growth (>~15600)  
+
+##### Checking the Mean-Variance Relationship  
+```{r}
+plot(glm1$fitted, glm1$residuals, 
+     pch = 19, col = "grey", ylab = "Residuals", xlab = "Fitted")
+```
+  
+* In this model the variance has to equal the mean, as such the variance should go up as the mean goes up. However, we can see in this plot that the variance is quite large for lower values. There are ways to account for this difference though.  
+
+* Estimating Confidence Intervals  
+```{r}
+confint(glm1)
+```
+  
+##### Rates  
+* In some cases one may want to compare a variable, $NHSS_i$ (Number Hits for Simply Statistics) in our example, to a total variable, $NH_i$ in our example, like a country's population if you're looking at a disease outbreak.  
+* We want to model: $E[NHSS_i | JD_i, b_0, b_1]/NH_i = \exp(b_0 + b_1 JD_i)$  
+  + $JD_i$ is the Julian Date  
+  + This can be evaluated as:  
+    - $\log(E[NHSS_i | JD_i, b_0, b_1]) - \log(NH_i)  =  b_0 + b_1 JD_i$  
+    - $\log(E[NHSS_i | JD_i, b_0, b_1]) = \log(NH_i)  +  b_0 + b_1 JD_i$  
+* Fitting in R  
+```{r}
+glm2 <- glm(gaData$simplystats ~ julian(gaData$date), offset = log(visits + 1),
+            family = "poisson", data = gaData)
+plot(julian(gaData$date), glm2$fitted, 
+     col = "#5BC2E7", pch = 19, xlab = "Julian Date", ylab = "Fitted Counts")
+points(julian(gaData$date), glm1$fitted, col = "red", pch = 19)
+```
+  
+* The blue points are adjusted for the the red points, this will let the fit follow a more appropriate poisson model.  
+```{r}
+plot(julian(gaData$date), gaData$simplystats/(gaData$visits + 1),
+     col = rgb(0,0,0,0.5), pch = 19, 
+     xlab = "Julian Date", ylab = "Fitted Rates")
+lines(julian(gaData$date), glm2$fitted/(gaData$visits + 1),
+      col = "#5BC2E7", lwd = 3)
+```
+
+#### More Information  
+* **[Log-linear models and multiway tables](http://ww2.coastal.edu/kingw/statistics/R-tutorials/loglin.html)**  
+* **[Wikipedia on Poisson regression](http://en.wikipedia.org/wiki/Poisson_regression)**, **[Wikipedia on overdispersion](http://en.wikipedia.org/wiki/Overdispersion)**  
+* **[PDF: Regression models for count data in R](http://cran.r-project.org/web/packages/pscl/vignettes/countreg.pdf)**  
+* **[pscl package](http://cran.r-project.org/web/packages/pscl/index.html)** - the function _zeroinfl_ fits zero inflated models.  
+
 ### Lesson with `swirl()`: Count Outcomes  
+(No new content)  
+
 **Reminder to commit (14) delete this line** ***AFTER*** **committing**  
 
 ## Hodgepodge  
