@@ -2214,11 +2214,97 @@ lines(julian(gaData$date), glm2$fitted/(gaData$visits + 1),
 ### Lesson with `swirl()`: Count Outcomes  
 (No new content)  
 
-**Reminder to commit (14) delete this line** ***AFTER*** **committing**  
-
 ## Hodgepodge  
-### Mishmash  
-### Hodgepodge  
+### Non-Linear Models  
+#### Fitting Functions Using Linear Models
+* Consider a model where a function is applied to X: $Y_i = f(X_i) + \epsilon$.  
+* How can we fit such a model using linear models (called scatterplot smoothing)  
+* Consider the model:  
+$Y_i = \beta_0 + \beta_1 X_i + \sum_{k=1}^d (x_i - \xi_k)_+ \gamma_k + \epsilon_i$
+  + where $(a)_+ = a$ fi $a > 0$ and $0$ otherwise and $\xi_1 \leq ... \leq \xi_d$ are known knot points ($\xi$ is pronounced *'k-si*).  
+* The mean function,  
+$\beta_0 + \beta_1 X_i + \sum_{k=1}^d (x_i - \xi_k)_+ \gamma_k$,  
+is continuous at the knot points.  
+
+##### Example  
+```{r}
+set.seed(1618033)
+n <- 500
+x <- seq(0, 4 * pi, length = n)
+y <- sin(x) + rnorm(n, sd = 0.3)
+knots <- seq(0, 8 * pi, length = 20)
+splineTerms <- sapply(knots, 
+                      function(knot){(x > knot) * (x - knot)})
+xMat <- cbind(1, x, splineTerms)
+yhat <- predict(lm(y ~ xMat - 1)) #int. is included in x
+plot(x, y, frame = FALSE, pch = 21, bg = "#5BC2E7", cex = 2)
+lines(x, yhat, col = "#FF0000", lwd = 2)
+```
+  
+* The breakpoints are where the line turns at a sharp angle, the derivite of this line at these points would not be continious  
+* Adding squared terms will fix this continuity issue  
+
+#### Adding Squared Terms  
+* Adding squared terms makes it continously differentiable at the knot points.  
+$Y_i = \beta_0 + \beta_1 X_i + \beta_2 X_i^2 + \sum_{k=1}^d (x_i - \xi_k)_+^2 \gamma_k + \epsilon_{i}$  
+
+* Adding cubic terms makes it continously differentiable on the second derivative, and so on for higher powers  
+
+```{r}
+splineTerms <- sapply(knots, function(knot) (x > knot) * (x - knot)^2)
+xMat <- cbind(1, x, x^2, splineTerms)
+yhat <- predict(lm(y ~ xMat - 1))
+plot(x, y, frame = FALSE, pch = 21, bg = "#5BC2E7", cex = 2)
+lines(x, yhat, col = "#FF0000", lwd = 2)
+```
+  
+#### Notes  
+* The collection of regressors is called a basis.  
+  + This is one of the main focuses of linear algebra  
+* Single knot point terms can fit "hockey stick like" processes (Models with one knot point).  
+* These bases can be used in GLMs as well.  
+* An issue with these approaches is the large number of parameters introduced.  
+  + Requires some method of so called regularization.  
+
+### Harmonics Using Linear Models  
+* A chord finder from playing the white keys on a piano from c4 (c in 4th octave) to c5.  
+```{r}
+notes4 <- c(261.63, 293.66, 329.63, 349.23, 392.00, 440.00, 493.88, 523.25)
+t <- seq(0, 2, by = 0.001)
+n <- length(t)
+c4 <- sin(2 * pi * notes4[1] * t)
+e4 <- sin(2 * pi * notes4[3] * t)
+g4 <- sin(2 * pi * notes4[5] * t)
+chord <- c4 + e4 + g4 + rnorm(n, 0, 0.3)
+x <- sapply(notes4, 
+            function(freq) sin(2 * pi * freq * t))
+fit <- lm(chord ~ x - 1)
+```
+  
+* The `savewav` package would let you save `.wav` files from code  
+* The model, chord, is predicting which note belongs to the chord, even with noise added  
+
+```{r}
+plot(c(0, 9), c(0, 1.5), 
+     xlab = "Note", ylab = "Coef^2", 
+     axes = FALSE, frame = TRUE, type = "n")
+axis(2)
+axis(1, at = 1:8, labels = c("c4", "d4", "e4", "f4", "g4", "a4", "b4", "c5"))
+for (i in 1:8) abline(v = i, lwd = 3, col = grey(0.8))
+lines(c(0:9), c(0, coef(fit)^2, 0), type = "l", lwd = 3, col = "#FF0000")
+```
+
+```{r}
+#(How one would really do it with fourier transforms)
+a <- fft(chord)
+plot(Re(a)^2, type = "l")
+```
+  
+* `fft` computes the *discrete fourier transform* of an array using the "Fast Fourier Transform"  
+
+
+
+
 **Reminder to commit (15) delete this line** ***AFTER*** **committing**  
 
 ## Quiz 4  
