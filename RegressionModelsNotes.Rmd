@@ -2304,10 +2304,67 @@ plot(Re(a)^2, type = "l")
 
 
 
-
-**Reminder to commit (15) delete this line** ***AFTER*** **committing**  
-
 ## Quiz 4  
+1. Consider the space shuttle data, `shuttle` in the `MASS` library. Consider modeling the use of the autolander, `use`, as the outcome. Fit a logistic regression model with autolander use (`auto:1`) versus not (`noauto:0`) as predicted by wind sign, `wind`; `head:1` or `tail:2`. Give the estimated odds ratio for autolander use comparing head winds, labeled as "head" in the variable headwind (numerator) to tail winds (denominator).  
+```{r}
+library(MASS)
+library(tidyverse)
+data(shuttle)
+str(shuttle)
+#Use & wind has levels 1 or 2 so we have to make them binomial
+dat <- mutate(shuttle, use = relevel(use, ref = "noauto")) 
+fit <- glm((as.numeric(use) - 1) ~ 0 + wind, 
+           family = "binomial", data = dat)
+summary(fit)
+exp(coef(fit))
+exp(coef(fit)[1])/exp(coef(fit)[2])
+```
+
+2. Consider the previous problem. Give the estimated odds ratio for autolander use comparing head winds (numerator) to tail winds (denominator) adjusting for wind strength from the variable magn.  
+
+```{r}
+fit <- glm((as.numeric(use) - 1) ~ 0 + wind + magn, 
+           family = "binomial", data = dat)
+summary(fit)
+exp(coef(fit))
+exp(coef(fit)[1])/exp(coef(fit)[2])
+```
+
+3. If you fit a logistic regression model to a binary variable, for example use of the autolander, then fit a logistic regression model for one minus the outcome (not using the autolander) what happens to the coefficients?  
+* The outcome is binary (1 for success or 0 for failure), doing $1-outcome$ will make it a 0 for a success or a 1 for a failure, which would effectivly just change the sign of the coefficients.  
+
+4. Consider the insect spray data `InsectSprays`. Fit a Poisson model using spray as a factor level. Report the estimated relative rate comapring spray A (numerator) to spray B (denominator).  
+```{r}
+data("InsectSprays")
+fit <- glm(count ~ 0+ spray, family = "poisson", data = InsectSprays)
+summary(fit)
+co <- coef(fit)
+exp(co[1])/exp(co[2])
+```
+
+5. Consider a Poisson glm with an offset, `t`. So, for example, a model of the form `glm(count ~ x + offset(t), family = poisson)` where `x` is a factor variable comparing a treatment (1) to a control (0) and `t` is the natural log of a monitoring time. What is impact of the coefficient for `x` if we fit the model `glm(count ~ x + offset(t2), family = poisson)` where `2 <- log(10) + t`? In other words, what happens to the coefficients if we change the units of the offset variable. (Note, adding log(10) on the log scale is multiplying by 10 on the original scale.)  
+* The `offset` function is just recentering the orgin so this wouldn't affect the coefficient  
+
+6. Given:  
+```{r}
+x <- -5:5
+y <- c(5.12, 3.93, 2.67, 1.87, 0.52, 0.08, 0.93, 2.05, 2.54, 3.87, 4.97)
+```
+Using a knot point at 0, fit a linear model that looks like a hockey stick with two lines meeting at x=0. Include an intercept term, x and the knot point term. What is the estimated slope of the line after 0?  
+```{r}
+knot <- 0
+splineTerms <- sapply(knot, 
+                       function(knot) {(x > knot) * (x - knot)})
+xmat <- cbind(1, x, splineTerms)
+fit <- lm(y ~ xmat - 1)
+yhat <- predict(fit) #int. is included in x
+plot(x, y, frame = FALSE, pch = 21, bg = "#5BC2E7", cex = 2)
+lines(x, yhat, col = "#FF0000", lwd = 2)
+summary(fit)
+sum(fit$coefficients[2:3]) 
+```
+
+
 **Reminder to commit (S4) delete this line** ***AFTER*** **committing**  
 
 # Course Project   
